@@ -296,94 +296,6 @@ CABLES.OPS["b0472a1d-db16-4ba6-8787-f300fbdc77bb"]={f:Ops.Gl.MainLoop,objName:"O
 
 // **************************************************************
 // 
-// Ops.Math.RandomCounter
-// 
-// **************************************************************
-
-Ops.Math.RandomCounter = function()
-{
-CABLES.Op.apply(this,arguments);
-const op=this;
-const attachments={};
-const
-    inCount=op.inTriggerButton("Count"),
-    inMin=op.inFloat("Step Min",0.5),
-    inMax=op.inFloat("Step Max",1),
-    outNum=op.outNumber("Result");
-
-inCount.onTriggered=count;
-
-let v=0;
-
-
-function count()
-{
-
-    let r=Math.seededRandom() * (inMax.get() - inMin.get()) + inMin.get();
-
-    if(Math.seededRandom()>0.5) v+=r;
-    else v-=r;
-
-    outNum.set(v);
-
-}
-
-};
-
-Ops.Math.RandomCounter.prototype = new CABLES.Op();
-CABLES.OPS["48c712f0-bb8e-4a0b-9b97-26da68a68223"]={f:Ops.Math.RandomCounter,objName:"Ops.Math.RandomCounter"};
-
-
-
-
-// **************************************************************
-// 
-// Ops.Ui.VizNumber
-// 
-// **************************************************************
-
-Ops.Ui.VizNumber = function()
-{
-CABLES.Op.apply(this,arguments);
-const op=this;
-const attachments={};
-const inNum = op.inFloat("Number", 0);
-const outNum = op.outNumber("Result");
-
-op.setUiAttrib({ "widthOnlyGrow": true });
-
-inNum.onChange = () =>
-{
-    let n = inNum.get();
-    if (op.patch.isEditorMode())
-    {
-        let str = "";
-        if (n === null)str = "null";
-        else if (n === undefined)str = "undefined";
-        else
-        {
-            str = "" + Math.round(n * 10000) / 10000;
-
-            if (str[0] != "-")str = " " + str;
-        }
-
-        op.setUiAttribs({ "extendTitle": str });
-    }
-
-    outNum.set(n);
-};
-
-
-};
-
-Ops.Ui.VizNumber.prototype = new CABLES.Op();
-CABLES.OPS["2b60d12d-2884-4ad0-bda4-0caeb6882f5c"]={f:Ops.Ui.VizNumber,objName:"Ops.Ui.VizNumber"};
-
-
-
-
-// **************************************************************
-// 
 // Ops.Math.DegreeToVector
 // 
 // **************************************************************
@@ -1394,62 +1306,6 @@ CABLES.OPS["5f8ce5fc-9787-45c9-9a83-0eebd2c6de15"]={f:Ops.Vars.VarGetTexture_v2,
 
 // **************************************************************
 // 
-// Ops.Math.TriggerRandomNumber_v2
-// 
-// **************************************************************
-
-Ops.Math.TriggerRandomNumber_v2 = function()
-{
-CABLES.Op.apply(this,arguments);
-const op=this;
-const attachments={};
-const
-    exe = op.inTriggerButton("Generate"),
-    min = op.inValue("min", 0),
-    max = op.inValue("max", 1),
-    outTrig = op.outTrigger("next"),
-    result = op.outNumber("result"),
-    inInteger = op.inValueBool("Integer", false),
-    noDupe = op.inValueBool("No consecutive duplicates", false);
-
-op.setPortGroup("Value Range", [min, max]);
-
-exe.onTriggered =
-    max.onChange =
-    min.onChange =
-    inInteger.onChange = genRandom;
-
-genRandom();
-
-function genRandom()
-{
-    let r = (Math.random() * (max.get() - min.get())) + min.get();
-
-    if (inInteger.get())r = randInt();
-
-    if (min.get() != max.get() && max.get() > min.get())
-        while (noDupe.get() && r == result.get()) r = randInt();
-
-    result.set(r);
-    outTrig.trigger();
-}
-
-function randInt()
-{
-    return Math.floor((Math.random() * ((max.get() - min.get() + 1))) + min.get());
-}
-
-
-};
-
-Ops.Math.TriggerRandomNumber_v2.prototype = new CABLES.Op();
-CABLES.OPS["26f446cc-9107-4164-8209-5254487fa132"]={f:Ops.Math.TriggerRandomNumber_v2,objName:"Ops.Math.TriggerRandomNumber_v2"};
-
-
-
-
-// **************************************************************
-// 
 // Ops.Trigger.TriggerOnChangeTexture
 // 
 // **************************************************************
@@ -1851,50 +1707,6 @@ CABLES.OPS["fbb89f72-f2e3-4d34-ad01-7d884a1bcdc0"]={f:Ops.Value.SwitchNumber,obj
 
 // **************************************************************
 // 
-// Ops.Math.Speed
-// 
-// **************************************************************
-
-Ops.Math.Speed = function()
-{
-CABLES.Op.apply(this,arguments);
-const op=this;
-const attachments={};
-const
-    inExe = op.inTrigger("Update"),
-    inVal = op.inValue("Value"),
-    result = op.outNumber("Speed");
-
-inVal.alwaysChange = true;
-
-let lastVal = 0;
-let lastTime = CABLES.now();
-inExe.onTriggered = update;
-
-function update()
-{
-    let diff = Math.abs(inVal.get() - lastVal);
-    let diffTime = CABLES.now() - lastTime;
-
-    let speed = diff * (1000 / diffTime);
-
-    result.set(speed);
-
-    lastVal = inVal.get();
-    lastTime = CABLES.now();
-}
-
-
-};
-
-Ops.Math.Speed.prototype = new CABLES.Op();
-CABLES.OPS["ff6b8c7b-00c6-48f2-9b43-d059e52143fe"]={f:Ops.Math.Speed,objName:"Ops.Math.Speed"};
-
-
-
-
-// **************************************************************
-// 
 // Ops.Math.Modulo
 // 
 // **************************************************************
@@ -2096,6 +1908,52 @@ inArray.onLinkChanged = () =>
 
 Ops.Array.ArrayMultiply.prototype = new CABLES.Op();
 CABLES.OPS["a01c344b-4129-4b01-9c8f-36cefe86d7cc"]={f:Ops.Array.ArrayMultiply,objName:"Ops.Array.ArrayMultiply"};
+
+
+
+
+// **************************************************************
+// 
+// Ops.Ui.VizNumber
+// 
+// **************************************************************
+
+Ops.Ui.VizNumber = function()
+{
+CABLES.Op.apply(this,arguments);
+const op=this;
+const attachments={};
+const inNum = op.inFloat("Number", 0);
+const outNum = op.outNumber("Result");
+
+op.setUiAttrib({ "widthOnlyGrow": true });
+
+inNum.onChange = () =>
+{
+    let n = inNum.get();
+    if (op.patch.isEditorMode())
+    {
+        let str = "";
+        if (n === null)str = "null";
+        else if (n === undefined)str = "undefined";
+        else
+        {
+            str = "" + Math.round(n * 10000) / 10000;
+
+            if (str[0] != "-")str = " " + str;
+        }
+
+        op.setUiAttribs({ "extendTitle": str });
+    }
+
+    outNum.set(n);
+};
+
+
+};
+
+Ops.Ui.VizNumber.prototype = new CABLES.Op();
+CABLES.OPS["2b60d12d-2884-4ad0-bda4-0caeb6882f5c"]={f:Ops.Ui.VizNumber,objName:"Ops.Ui.VizNumber"};
 
 
 
@@ -4399,36 +4257,6 @@ CABLES.OPS["559bb980-78fb-47a7-a199-16f10808b150"]={f:Ops.Anim.LFO,objName:"Ops.
 
 // **************************************************************
 // 
-// Ops.Time.Milliseconds
-// 
-// **************************************************************
-
-Ops.Time.Milliseconds = function()
-{
-CABLES.Op.apply(this,arguments);
-const op=this;
-const attachments={};
-
-
-const
-    inUpdate=op.inTrigger("update"),
-    res=op.outNumber("Result");
-
-inUpdate.onTriggered=function()
-{
-  res.set(performance.now());
-};
-
-};
-
-Ops.Time.Milliseconds.prototype = new CABLES.Op();
-CABLES.OPS["2f447fcb-3c20-4c2f-9527-84daed3a6b0e"]={f:Ops.Time.Milliseconds,objName:"Ops.Time.Milliseconds"};
-
-
-
-
-// **************************************************************
-// 
 // Ops.Html.WindowHasFocus
 // 
 // **************************************************************
@@ -5567,72 +5395,6 @@ CABLES.OPS["5b244b6e-c505-4743-b2cc-8119ef720028"]={f:Ops.Anim.SimpleAnim,objNam
 
 // **************************************************************
 // 
-// Ops.Trigger.ProbabilityTrigger
-// 
-// **************************************************************
-
-Ops.Trigger.ProbabilityTrigger = function()
-{
-CABLES.Op.apply(this,arguments);
-const op=this;
-const attachments={};
-const inTrigger = op.inTrigger("Trigger In");
-const inProbability = op.inFloatSlider("Probability", 0.5);
-const outTrigger = op.outTrigger("Trigger Output");
-const outInverseTrigger = op.outTrigger("Inverse Trigger Output");
-Math.randomSeed = 0;
-
-let scheduleUpdate = false;
-let probability = inProbability.get();
-inProbability.onChange = () =>
-{
-    if (inTrigger.isLinked())
-    {
-        scheduleUpdate = true;
-        return;
-    }
-    probability = inProbability.get();
-};
-
-inTrigger.onTriggered = () =>
-{
-    if (scheduleUpdate)
-    {
-        probability = inProbability.get();
-        scheduleUpdate = false;
-    }
-    if (probability >= 1)
-    {
-        outTrigger.trigger();
-        return;
-    }
-
-    if (probability <= 0)
-    {
-        outInverseTrigger.trigger();
-        return;
-    }
-    if (Math.seededRandom() < probability)
-    {
-        outTrigger.trigger();
-    }
-    else
-    {
-        outInverseTrigger.trigger();
-    }
-};
-
-
-};
-
-Ops.Trigger.ProbabilityTrigger.prototype = new CABLES.Op();
-CABLES.OPS["69436c67-eab0-4829-b0dc-d7bfd863a116"]={f:Ops.Trigger.ProbabilityTrigger,objName:"Ops.Trigger.ProbabilityTrigger"};
-
-
-
-
-// **************************************************************
-// 
 // Ops.Html.LoadingIndicator
 // 
 // **************************************************************
@@ -6728,67 +6490,6 @@ function exec()
 
 Ops.Math.Compare.LessThan.prototype = new CABLES.Op();
 CABLES.OPS["04fd113f-ade1-43fb-99fa-f8825f8814c0"]={f:Ops.Math.Compare.LessThan,objName:"Ops.Math.Compare.LessThan"};
-
-
-
-
-// **************************************************************
-// 
-// Ops.Math.SimpleMovingAverage
-// 
-// **************************************************************
-
-Ops.Math.SimpleMovingAverage = function()
-{
-CABLES.Op.apply(this,arguments);
-const op=this;
-const attachments={};
-const
-    val = op.inValue("Value"),
-    num = op.inValueInt("Number of Values", 10),
-    result = op.outNumber("Result");
-
-val.changeAlways = true;
-let buffer = [];
-let index = 0;
-
-num.onChange = init;
-init();
-
-function init()
-{
-    let n = Math.abs(Math.floor(num.get()));
-    buffer.length = n;
-
-    for (let i = 0; i < buffer.length; i++)buffer[i] = null;
-    index = 0;
-}
-
-val.onChange = function ()
-{
-    index++;
-    if (index >= buffer.length)index = 0;
-    buffer[index] = val.get();
-
-    let avg = 0;
-    let divide = 0;
-    for (let i = 0; i < buffer.length; i++)
-    {
-        if (buffer[i] !== null) // ignore zeroes
-        {
-            avg += buffer[i];
-            divide++;
-        }
-    }
-
-    result.set(avg / divide || 1);
-};
-
-
-};
-
-Ops.Math.SimpleMovingAverage.prototype = new CABLES.Op();
-CABLES.OPS["b28c1e66-1c88-4394-bf73-327c0e82ea34"]={f:Ops.Math.SimpleMovingAverage,objName:"Ops.Math.SimpleMovingAverage"};
 
 
 
@@ -9329,6 +9030,107 @@ CABLES.OPS["319d07e0-5cbe-4bc1-89fb-a934fd41b0c4"]={f:Ops.Trigger.TriggerOnChang
 
 // **************************************************************
 // 
+// Ops.Trigger.TriggerOnce
+// 
+// **************************************************************
+
+Ops.Trigger.TriggerOnce = function()
+{
+CABLES.Op.apply(this,arguments);
+const op=this;
+const attachments={};
+const
+    exe = op.inTriggerButton("Exec"),
+    reset = op.inTriggerButton("Reset"),
+    next = op.outTrigger("Next"),
+    outTriggered = op.outBoolNum("Was Triggered");
+
+let triggered = false;
+
+op.toWorkPortsNeedToBeLinked(exe);
+
+reset.onTriggered = function ()
+{
+    triggered = false;
+    outTriggered.set(triggered);
+};
+
+exe.onTriggered = function ()
+{
+    if (triggered) return;
+
+    triggered = true;
+    next.trigger();
+    outTriggered.set(triggered);
+};
+
+
+};
+
+Ops.Trigger.TriggerOnce.prototype = new CABLES.Op();
+CABLES.OPS["cf3544e4-e392-432b-89fd-fcfb5c974388"]={f:Ops.Trigger.TriggerOnce,objName:"Ops.Trigger.TriggerOnce"};
+
+
+
+
+// **************************************************************
+// 
+// Ops.Math.TriggerRandomNumber_v2
+// 
+// **************************************************************
+
+Ops.Math.TriggerRandomNumber_v2 = function()
+{
+CABLES.Op.apply(this,arguments);
+const op=this;
+const attachments={};
+const
+    exe = op.inTriggerButton("Generate"),
+    min = op.inValue("min", 0),
+    max = op.inValue("max", 1),
+    outTrig = op.outTrigger("next"),
+    result = op.outNumber("result"),
+    inInteger = op.inValueBool("Integer", false),
+    noDupe = op.inValueBool("No consecutive duplicates", false);
+
+op.setPortGroup("Value Range", [min, max]);
+
+exe.onTriggered =
+    max.onChange =
+    min.onChange =
+    inInteger.onChange = genRandom;
+
+genRandom();
+
+function genRandom()
+{
+    let r = (Math.random() * (max.get() - min.get())) + min.get();
+
+    if (inInteger.get())r = randInt();
+
+    if (min.get() != max.get() && max.get() > min.get())
+        while (noDupe.get() && r == result.get()) r = randInt();
+
+    result.set(r);
+    outTrig.trigger();
+}
+
+function randInt()
+{
+    return Math.floor((Math.random() * ((max.get() - min.get() + 1))) + min.get());
+}
+
+
+};
+
+Ops.Math.TriggerRandomNumber_v2.prototype = new CABLES.Op();
+CABLES.OPS["26f446cc-9107-4164-8209-5254487fa132"]={f:Ops.Math.TriggerRandomNumber_v2,objName:"Ops.Math.TriggerRandomNumber_v2"};
+
+
+
+
+// **************************************************************
+// 
 // Ops.Array.ArrayGetTexture
 // 
 // **************************************************************
@@ -9389,51 +9191,6 @@ function update()
 
 Ops.Array.ArrayGetTexture.prototype = new CABLES.Op();
 CABLES.OPS["afea522b-ab72-4574-b721-5d37f5abaf77"]={f:Ops.Array.ArrayGetTexture,objName:"Ops.Array.ArrayGetTexture"};
-
-
-
-
-// **************************************************************
-// 
-// Ops.Trigger.TriggerOnce
-// 
-// **************************************************************
-
-Ops.Trigger.TriggerOnce = function()
-{
-CABLES.Op.apply(this,arguments);
-const op=this;
-const attachments={};
-const
-    exe = op.inTriggerButton("Exec"),
-    reset = op.inTriggerButton("Reset"),
-    next = op.outTrigger("Next"),
-    outTriggered = op.outBoolNum("Was Triggered");
-
-let triggered = false;
-
-op.toWorkPortsNeedToBeLinked(exe);
-
-reset.onTriggered = function ()
-{
-    triggered = false;
-    outTriggered.set(triggered);
-};
-
-exe.onTriggered = function ()
-{
-    if (triggered) return;
-
-    triggered = true;
-    next.trigger();
-    outTriggered.set(triggered);
-};
-
-
-};
-
-Ops.Trigger.TriggerOnce.prototype = new CABLES.Op();
-CABLES.OPS["cf3544e4-e392-432b-89fd-fcfb5c974388"]={f:Ops.Trigger.TriggerOnce,objName:"Ops.Trigger.TriggerOnce"};
 
 
 
@@ -10186,42 +9943,6 @@ CABLES.OPS["83b4d148-8cb3-4a45-8824-957eeaf02e22"]={f:Ops.Json.ObjectKeys,objNam
 
 // **************************************************************
 // 
-// Ops.Array.ArrayLength
-// 
-// **************************************************************
-
-Ops.Array.ArrayLength = function()
-{
-CABLES.Op.apply(this,arguments);
-const op=this;
-const attachments={};
-const
-    array = op.inArray("array"),
-    outLength = op.outNumber("length");
-
-outLength.ignoreValueSerialize = true;
-
-function update()
-{
-    let l = 0;
-    if (array.get()) l = array.get().length;
-    else l = -1;
-    outLength.set(l);
-}
-
-array.onChange = update;
-
-
-};
-
-Ops.Array.ArrayLength.prototype = new CABLES.Op();
-CABLES.OPS["ea508405-833d-411a-86b4-1a012c135c8a"]={f:Ops.Array.ArrayLength,objName:"Ops.Array.ArrayLength"};
-
-
-
-
-// **************************************************************
-// 
 // Ops.Trigger.GateTrigger
 // 
 // **************************************************************
@@ -10380,6 +10101,42 @@ function update()
 
 Ops.Array.ArrayRandomSelection.prototype = new CABLES.Op();
 CABLES.OPS["3dc059c8-bcb3-4d63-b806-ce81215da3b5"]={f:Ops.Array.ArrayRandomSelection,objName:"Ops.Array.ArrayRandomSelection"};
+
+
+
+
+// **************************************************************
+// 
+// Ops.Array.ArrayLength
+// 
+// **************************************************************
+
+Ops.Array.ArrayLength = function()
+{
+CABLES.Op.apply(this,arguments);
+const op=this;
+const attachments={};
+const
+    array = op.inArray("array"),
+    outLength = op.outNumber("length");
+
+outLength.ignoreValueSerialize = true;
+
+function update()
+{
+    let l = 0;
+    if (array.get()) l = array.get().length;
+    else l = -1;
+    outLength.set(l);
+}
+
+array.onChange = update;
+
+
+};
+
+Ops.Array.ArrayLength.prototype = new CABLES.Op();
+CABLES.OPS["ea508405-833d-411a-86b4-1a012c135c8a"]={f:Ops.Array.ArrayLength,objName:"Ops.Array.ArrayLength"};
 
 
 
@@ -12443,103 +12200,6 @@ CABLES.OPS["090355fe-6ad9-457c-8192-9e306a9fe1eb"]={f:Ops.Extension.FxHash.FxHas
 
 // **************************************************************
 // 
-// Ops.Ui.VizStringLong
-// 
-// **************************************************************
-
-Ops.Ui.VizStringLong = function()
-{
-CABLES.Op.apply(this,arguments);
-const op=this;
-const attachments={};
-const
-    inStr = op.inStringEditor("String"),
-    inZoomText = op.inBool("ZoomText", false),
-    inLineNums = op.inBool("Line Numbers", true),
-    inFontSize = op.inFloat("Font Size", 10),
-    inPos = op.inFloatSlider("Scroll", 0);
-
-op.setUiAttrib({ "height": 200, "width": 400, "resizable": true });
-inStr.ignoreValueSerialize = true;
-
-let lines = [];
-
-inStr.onLinkChanged = () =>
-{
-    if (!inStr.isLinked())
-    {
-        lines = [];
-        inStr.set(null);
-    }
-};
-
-inStr.onChange = () =>
-{
-    if (inStr.get()) lines = inStr.get().split("\n");
-    else lines = [];
-};
-
-op.renderVizLayer = (ctx, layer, viz) =>
-{
-    ctx.fillStyle = "#222";
-    ctx.fillRect(layer.x, layer.y, layer.width, layer.height);
-
-    if (!inStr.get()) return;
-
-    ctx.save();
-    ctx.scale(layer.scale, layer.scale);
-
-    viz.renderText(ctx, layer, lines, {
-        "zoomText": inZoomText.get(),
-        "showLineNum": inLineNums.get(),
-        "fontSize": inFontSize.get(),
-        "scroll": inPos.get()
-    });
-
-    ctx.restore();
-};
-
-
-};
-
-Ops.Ui.VizStringLong.prototype = new CABLES.Op();
-CABLES.OPS["b4c93fde-85c6-4c7e-9962-a6463a84838b"]={f:Ops.Ui.VizStringLong,objName:"Ops.Ui.VizStringLong"};
-
-
-
-
-// **************************************************************
-// 
-// Ops.String.String_v2
-// 
-// **************************************************************
-
-Ops.String.String_v2 = function()
-{
-CABLES.Op.apply(this,arguments);
-const op=this;
-const attachments={};
-const
-    v=op.inString("value",""),
-    result=op.outString("String");
-
-v.onChange=function()
-{
-    result.set(v.get());
-};
-
-
-
-};
-
-Ops.String.String_v2.prototype = new CABLES.Op();
-CABLES.OPS["d697ff82-74fd-4f31-8f54-295bc64e713d"]={f:Ops.String.String_v2,objName:"Ops.String.String_v2"};
-
-
-
-
-// **************************************************************
-// 
 // Ops.Debug.ConsoleLog
 // 
 // **************************************************************
@@ -12568,6 +12228,814 @@ inString.onChange=function()
 
 Ops.Debug.ConsoleLog.prototype = new CABLES.Op();
 CABLES.OPS["545e7225-73b0-4d40-923b-4b39940403a8"]={f:Ops.Debug.ConsoleLog,objName:"Ops.Debug.ConsoleLog"};
+
+
+
+
+// **************************************************************
+// 
+// Ops.Vars.VarSetArray_v2
+// 
+// **************************************************************
+
+Ops.Vars.VarSetArray_v2 = function()
+{
+CABLES.Op.apply(this,arguments);
+const op=this;
+const attachments={};
+const val = op.inArray("Value", null);
+op.varName = op.inDropDown("Variable", [], "", true);
+
+new CABLES.VarSetOpWrapper(op, "array", val, op.varName);
+
+
+};
+
+Ops.Vars.VarSetArray_v2.prototype = new CABLES.Op();
+CABLES.OPS["8088290f-45d4-4312-b4ca-184d34ca4667"]={f:Ops.Vars.VarSetArray_v2,objName:"Ops.Vars.VarSetArray_v2"};
+
+
+
+
+// **************************************************************
+// 
+// Ops.Math.Floor
+// 
+// **************************************************************
+
+Ops.Math.Floor = function()
+{
+CABLES.Op.apply(this,arguments);
+const op=this;
+const attachments={};
+const number1 = op.inValue("Number");
+const result = op.outNumber("Result");
+number1.onChange = exec;
+
+function exec()
+{
+    result.set(Math.floor(number1.get()));
+}
+
+
+};
+
+Ops.Math.Floor.prototype = new CABLES.Op();
+CABLES.OPS["0c77617c-b688-4b55-addf-2cbcaabf98af"]={f:Ops.Math.Floor,objName:"Ops.Math.Floor"};
+
+
+
+
+// **************************************************************
+// 
+// Ops.Vars.VarGetArray_v2
+// 
+// **************************************************************
+
+Ops.Vars.VarGetArray_v2 = function()
+{
+CABLES.Op.apply(this,arguments);
+const op=this;
+const attachments={};
+const val = op.outArray("Value");
+op.varName = op.inValueSelect("Variable", [], "", true);
+
+new CABLES.VarGetOpWrapper(op, "array", op.varName, val);
+
+
+};
+
+Ops.Vars.VarGetArray_v2.prototype = new CABLES.Op();
+CABLES.OPS["afa79294-aa9c-43bc-a49a-cade000a1de5"]={f:Ops.Vars.VarGetArray_v2,objName:"Ops.Vars.VarGetArray_v2"};
+
+
+
+
+// **************************************************************
+// 
+// Ops.Array.ArrayGetNumber
+// 
+// **************************************************************
+
+Ops.Array.ArrayGetNumber = function()
+{
+CABLES.Op.apply(this,arguments);
+const op=this;
+const attachments={};
+const
+    array = op.inArray("array"),
+    index = op.inValueInt("index"),
+    value = op.outNumber("value");
+
+array.ignoreValueSerialize = true;
+
+index.onChange = array.onChange = update;
+
+function update()
+{
+    if (array.get())
+    {
+        let input = array.get()[index.get()];
+        if (isNaN(input))
+        {
+            value.set(0);
+            return;
+        }
+        value.set(parseFloat(input));
+    }
+}
+
+
+};
+
+Ops.Array.ArrayGetNumber.prototype = new CABLES.Op();
+CABLES.OPS["d1189078-70cf-437d-9a37-b2ebe89acdaf"]={f:Ops.Array.ArrayGetNumber,objName:"Ops.Array.ArrayGetNumber"};
+
+
+
+
+// **************************************************************
+// 
+// Ops.String.StringEditor
+// 
+// **************************************************************
+
+Ops.String.StringEditor = function()
+{
+CABLES.Op.apply(this,arguments);
+const op=this;
+const attachments={};
+const
+    v = op.inStringEditor("value", ""),
+    syntax = op.inValueSelect("Syntax", ["text", "glsl", "css", "html", "xml", "json", "javascript", "inline-css", "sql"], "text"),
+    result = op.outString("Result");
+
+syntax.onChange = updateSyntax;
+
+function updateSyntax()
+{
+    let s = syntax.get();
+    if (s == "javascript")s = "js";
+    v.setUiAttribs({ "editorSyntax": s });
+}
+
+v.onChange = function ()
+{
+    result.set(v.get());
+};
+
+
+};
+
+Ops.String.StringEditor.prototype = new CABLES.Op();
+CABLES.OPS["6468b7c1-f63e-4db4-b809-4b203d27ead3"]={f:Ops.String.StringEditor,objName:"Ops.String.StringEditor"};
+
+
+
+
+// **************************************************************
+// 
+// Ops.Array.ArraySumPrevious
+// 
+// **************************************************************
+
+Ops.Array.ArraySumPrevious = function()
+{
+CABLES.Op.apply(this,arguments);
+const op=this;
+const attachments={};
+const
+    inArr=op.inArray("Array"),
+    inPad=op.inFloat("Padding",0),
+    outArr=op.outArray("Result");
+
+const newArr=[];
+
+inPad.onChange=
+inArr.onChange=()=>
+{
+    outArr.set(null);
+    let arr=inArr.get();
+    if(!arr || arr.length<1)return;
+
+    newArr.length=arr.length;
+
+    newArr[0]=arr[0];
+
+    for(let i=1;i<arr.length;i++)
+    {
+        newArr[i]=newArr[i-1]+arr[i]+inPad.get();
+    }
+
+    outArr.set(newArr);
+
+
+};
+
+};
+
+Ops.Array.ArraySumPrevious.prototype = new CABLES.Op();
+CABLES.OPS["71494407-e618-425f-890b-dcf6c3d46cf1"]={f:Ops.Array.ArraySumPrevious,objName:"Ops.Array.ArraySumPrevious"};
+
+
+
+
+// **************************************************************
+// 
+// Ops.Array.MapRangeArray
+// 
+// **************************************************************
+
+Ops.Array.MapRangeArray = function()
+{
+CABLES.Op.apply(this,arguments);
+const op=this;
+const attachments={};
+const
+    v = op.inArray("array"),
+    old_min = op.inValueFloat("old min"),
+    old_max = op.inValueFloat("old max"),
+    new_min = op.inValueFloat("new min"),
+    new_max = op.inValueFloat("new max"),
+    easing = op.inValueSelect("Easing", ["Linear", "Smoothstep", "Smootherstep"], "Linear"),
+    result = op.outArray("result");
+
+op.setPortGroup("Input Range", [old_min, old_max]);
+op.setPortGroup("Output Range", [new_min, new_max]);
+
+let ease = 0;
+let r = 0;
+
+easing.onChange = function ()
+{
+    if (easing.get() === "Smoothstep")
+    {
+        ease = 1;
+    }
+    else if (easing.get() === "Smootherstep")
+    {
+        ease = 2;
+    }
+    else
+    {
+        ease = 0;
+    }
+    exec();
+};
+
+let outArray = Array(1);
+
+function exec()
+{
+    const inArray = v.get();
+    if (!inArray || inArray.length === 0)
+    {
+        result.set([]);
+        return;
+    }
+    // const outArray = Array(inArray.length);
+    outArray.length = inArray.length;
+    for (let i = 0; i < inArray.length; i++)
+    {
+        let x = inArray[i];
+
+        if (x >= Math.max(old_max.get(), old_min.get()))
+        {
+            outArray[i] = new_max.get();
+        }
+        else if (x <= Math.min(old_max.get(), old_min.get()))
+        {
+            outArray[i] = new_min.get();
+        }
+        else
+        {
+            const nMin = new_min.get();
+            const nMax = new_max.get();
+            const oMin = old_min.get();
+            const oMax = old_max.get();
+
+            let reverseInput = false;
+            const oldMin = Math.min(oMin, oMax);
+            const oldMax = Math.max(oMin, oMax);
+            if (oldMin !== oMin) reverseInput = true;
+
+            let reverseOutput = false;
+            const newMin = Math.min(nMin, nMax);
+            const newMax = Math.max(nMin, nMax);
+            if (newMin !== nMin) reverseOutput = true;
+
+            let portion = 0;
+
+            if (reverseInput)
+            {
+                portion = (oldMax - x) * (newMax - newMin) / (oldMax - oldMin);
+            }
+            else
+            {
+                portion = (x - oldMin) * (newMax - newMin) / (oldMax - oldMin);
+            }
+
+            if (reverseOutput)
+            {
+                r = newMax - portion;
+            }
+            else
+            {
+                r = portion + newMin;
+            }
+
+            if (ease === 0)
+            {
+                outArray[i] = r;
+            }
+            else if (ease === 1)
+            {
+                x = Math.max(0, Math.min(1, (r - nMin) / (nMax - nMin)));
+                outArray[i] = nMin + x * x * (3 - 2 * x) * (nMax - nMin); // smoothstep
+            }
+            else if (ease === 2)
+            {
+                x = Math.max(0, Math.min(1, (r - nMin) / (nMax - nMin)));
+                outArray[i] = nMin + x * x * x * (x * (x * 6 - 15) + 10) * (nMax - nMin); // smootherstep
+            }
+        }
+    }
+    result.setRef(outArray);
+}
+
+v.set(null);
+old_min.set(0);
+old_max.set(1);
+new_min.set(-1);
+new_max.set(1);
+
+v.onChange = exec;
+old_min.onChange = exec;
+old_max.onChange = exec;
+new_min.onChange = exec;
+new_max.onChange = exec;
+
+result.set(null);
+
+exec();
+
+
+};
+
+Ops.Array.MapRangeArray.prototype = new CABLES.Op();
+CABLES.OPS["20f921bf-adc2-45fb-b387-834af4f5e19b"]={f:Ops.Array.MapRangeArray,objName:"Ops.Array.MapRangeArray"};
+
+
+
+
+// **************************************************************
+// 
+// Ops.Math.Subtract
+// 
+// **************************************************************
+
+Ops.Math.Subtract = function()
+{
+CABLES.Op.apply(this,arguments);
+const op=this;
+const attachments={};
+const
+    number1 = op.inValue("number1", 1),
+    number2 = op.inValue("number2", 1),
+    result = op.outNumber("result");
+
+op.setTitle("-");
+
+number1.onChange =
+    number2.onChange = exec;
+exec();
+
+function exec()
+{
+    let v = number1.get() - number2.get();
+    if (!isNaN(v)) result.set(v);
+}
+
+
+};
+
+Ops.Math.Subtract.prototype = new CABLES.Op();
+CABLES.OPS["a4ffe852-d200-4b96-9347-68feb01122ca"]={f:Ops.Math.Subtract,objName:"Ops.Math.Subtract"};
+
+
+
+
+// **************************************************************
+// 
+// Ops.Array.ArrayIndexBetween
+// 
+// **************************************************************
+
+Ops.Array.ArrayIndexBetween = function()
+{
+CABLES.Op.apply(this,arguments);
+const op=this;
+const attachments={};
+const
+    inArr=op.inArray("Array"),
+    inNum=op.inFloat("Value",0),
+    outIndex=op.outNumber("Index");
+
+inArr.onChange=
+    inNum.onChange=update;
+
+function update()
+{
+    const arr=inArr.get();
+
+    if(!arr)
+    {
+        outIndex.set(-1);
+        return;
+    }
+
+    const n=inNum.get();
+
+    if(n<arr[0])return outIndex.set(0);
+
+    for(let i=0;i<arr.length-1;i++)
+    {
+
+        if(n>arr[i] && n<arr[i+1])
+        {
+            outIndex.set(i+1);
+            return;
+        }
+    }
+
+}
+
+};
+
+Ops.Array.ArrayIndexBetween.prototype = new CABLES.Op();
+CABLES.OPS["69faf293-140d-4a2c-ab2e-7e5577ab113d"]={f:Ops.Array.ArrayIndexBetween,objName:"Ops.Array.ArrayIndexBetween"};
+
+
+
+
+// **************************************************************
+// 
+// Ops.Value.ValueChangedTrigger
+// 
+// **************************************************************
+
+Ops.Value.ValueChangedTrigger = function()
+{
+CABLES.Op.apply(this,arguments);
+const op=this;
+const attachments={};
+const
+    val = op.inFloat("Value", 0),
+    exe = op.inTrigger("Execute"),
+    trigger = op.outTrigger("trigger");
+
+let changed = false;
+
+exe.onTriggered = function ()
+{
+    if (changed)
+    {
+        changed = false;
+        trigger.trigger();
+    }
+};
+
+val.onChange = function ()
+{
+    changed = true;
+};
+
+
+};
+
+Ops.Value.ValueChangedTrigger.prototype = new CABLES.Op();
+CABLES.OPS["9f353fcc-da0b-4af8-ae5c-4edd256fc9e3"]={f:Ops.Value.ValueChangedTrigger,objName:"Ops.Value.ValueChangedTrigger"};
+
+
+
+
+// **************************************************************
+// 
+// Ops.Array.RotateArray
+// 
+// **************************************************************
+
+Ops.Array.RotateArray = function()
+{
+CABLES.Op.apply(this,arguments);
+const op=this;
+const attachments={};
+const inArray = op.inArray("Array in");
+const count = op.inValueInt("Rotate amount", 0);
+const outArray = op.outArray("ArrayOut");
+
+let newArr = [];
+outArray.set(newArr);
+
+count.onChange =
+inArray.onChange = function ()
+{
+    let arr = inArray.get();
+    if (!arr) return;
+
+    let rotateIndex = -count.get();
+
+    newArr = rotate(inArray.get(), rotateIndex, 0);
+    outArray.set(null);
+    outArray.set(newArr);
+};
+
+// https://gist.github.com/aubergene/7ecfe624199e68f60258
+function rotate(array, n, guard)
+{
+    let head, tail;
+    n = (n === null) || guard ? 1 : n;
+    n %= array.length;
+    tail = array.slice(n) || [];
+
+    if (!tail || !tail.concat) return [];
+
+    head = array.slice(0, n) || [];
+    return tail.concat(head);
+}
+
+
+};
+
+Ops.Array.RotateArray.prototype = new CABLES.Op();
+CABLES.OPS["e435d07b-8545-4469-befb-868510adcb76"]={f:Ops.Array.RotateArray,objName:"Ops.Array.RotateArray"};
+
+
+
+
+// **************************************************************
+// 
+// Ops.Array.ArraySum
+// 
+// **************************************************************
+
+Ops.Array.ArraySum = function()
+{
+CABLES.Op.apply(this,arguments);
+const op=this;
+const attachments={};
+const
+    inArray = op.inArray("In"),
+    inValue = op.inValue("Value", 1.0),
+    outArray = op.outArray("Result");
+
+let newArr = [];
+outArray.set(newArr);
+
+inValue.onChange =
+inArray.onChange = function ()
+{
+    let arr = inArray.get();
+    if (!arr) return;
+
+    let add = inValue.get();
+
+    if (newArr.length != arr.length)newArr.length = arr.length;
+
+    for (let i = 0; i < arr.length; i++)
+    {
+        newArr[i] = arr[i] + add;
+    }
+
+    outArray.setRef(newArr);
+};
+
+
+};
+
+Ops.Array.ArraySum.prototype = new CABLES.Op();
+CABLES.OPS["c6b5bf63-0be8-4eea-acc0-9d32973e665a"]={f:Ops.Array.ArraySum,objName:"Ops.Array.ArraySum"};
+
+
+
+
+// **************************************************************
+// 
+// Ops.Math.Clamp
+// 
+// **************************************************************
+
+Ops.Math.Clamp = function()
+{
+CABLES.Op.apply(this,arguments);
+const op=this;
+const attachments={};
+const
+    val = op.inValueFloat("val", 0.5),
+    min = op.inValueFloat("min", 0),
+    max = op.inValueFloat("max", 1),
+    ignore = op.inValueBool("ignore outside values"),
+    result = op.outNumber("result");
+
+val.onChange = min.onChange = max.onChange = clamp;
+
+function clamp()
+{
+    if (ignore.get())
+    {
+        if (val.get() > max.get()) return;
+        if (val.get() < min.get()) return;
+    }
+    result.set(Math.min(Math.max(val.get(), min.get()), max.get()));
+}
+
+
+};
+
+Ops.Math.Clamp.prototype = new CABLES.Op();
+CABLES.OPS["cda1a98e-5e16-40bd-9b18-a67e9eaad5a1"]={f:Ops.Math.Clamp,objName:"Ops.Math.Clamp"};
+
+
+
+
+// **************************************************************
+// 
+// Ops.Anim.Timer_v2
+// 
+// **************************************************************
+
+Ops.Anim.Timer_v2 = function()
+{
+CABLES.Op.apply(this,arguments);
+const op=this;
+const attachments={};
+const
+    inSpeed = op.inValue("Speed", 1),
+    playPause = op.inValueBool("Play", true),
+    reset = op.inTriggerButton("Reset"),
+    inSyncTimeline = op.inValueBool("Sync to timeline", false),
+    outTime = op.outNumber("Time");
+
+op.setPortGroup("Controls", [playPause, reset, inSpeed]);
+
+const timer = new CABLES.Timer();
+let lastTime = null;
+let time = 0;
+let syncTimeline = false;
+
+playPause.onChange = setState;
+setState();
+
+function setState()
+{
+    if (playPause.get())
+    {
+        timer.play();
+        op.patch.addOnAnimFrame(op);
+    }
+    else
+    {
+        timer.pause();
+        op.patch.removeOnAnimFrame(op);
+    }
+}
+
+reset.onTriggered = doReset;
+
+function doReset()
+{
+    time = 0;
+    lastTime = null;
+    timer.setTime(0);
+    outTime.set(0);
+}
+
+inSyncTimeline.onChange = function ()
+{
+    syncTimeline = inSyncTimeline.get();
+    playPause.setUiAttribs({ "greyout": syncTimeline });
+    reset.setUiAttribs({ "greyout": syncTimeline });
+};
+
+op.onAnimFrame = function (tt)
+{
+    if (timer.isPlaying())
+    {
+        if (CABLES.overwriteTime !== undefined)
+        {
+            outTime.set(CABLES.overwriteTime * inSpeed.get());
+        }
+        else
+
+        if (syncTimeline)
+        {
+            outTime.set(tt * inSpeed.get());
+        }
+        else
+        {
+            timer.update();
+            const timerVal = timer.get();
+
+            if (lastTime === null)
+            {
+                lastTime = timerVal;
+                return;
+            }
+
+            const t = Math.abs(timerVal - lastTime);
+            lastTime = timerVal;
+
+            time += t * inSpeed.get();
+            if (time != time)time = 0;
+            outTime.set(time);
+        }
+    }
+};
+
+
+};
+
+Ops.Anim.Timer_v2.prototype = new CABLES.Op();
+CABLES.OPS["aac7f721-208f-411a-adb3-79adae2e471a"]={f:Ops.Anim.Timer_v2,objName:"Ops.Anim.Timer_v2"};
+
+
+
+
+// **************************************************************
+// 
+// Ops.Trigger.TriggerIfDecreased
+// 
+// **************************************************************
+
+Ops.Trigger.TriggerIfDecreased = function()
+{
+CABLES.Op.apply(this,arguments);
+const op=this;
+const attachments={};
+const
+    value = op.inValue("Value"),
+    trigger = op.outTrigger("Trigger");
+
+let lastValue = -Number.MAX_VALUE;
+
+value.onChange = function ()
+{
+    const v = value.get();
+    if (v < lastValue)
+    {
+        trigger.trigger();
+    }
+    lastValue = v;
+};
+
+
+};
+
+Ops.Trigger.TriggerIfDecreased.prototype = new CABLES.Op();
+CABLES.OPS["16ec4069-3682-461e-95ff-1d86e3f44512"]={f:Ops.Trigger.TriggerIfDecreased,objName:"Ops.Trigger.TriggerIfDecreased"};
+
+
+
+
+// **************************************************************
+// 
+// Ops.Trigger.TriggersPerSecond
+// 
+// **************************************************************
+
+Ops.Trigger.TriggersPerSecond = function()
+{
+CABLES.Op.apply(this,arguments);
+const op=this;
+const attachments={};
+const
+    exe = op.inTrigger("exe"),
+    cps = op.outNumber("cps");
+
+let timeStart = 0;
+let cpsCount = 0;
+
+exe.onTriggered = function ()
+{
+    if (timeStart === 0)timeStart = CABLES.now();
+    let now = CABLES.now();
+
+    if (now - timeStart > 1000)
+    {
+        timeStart = CABLES.now();
+        op.setUiAttrib({ "extendTitle": cpsCount });
+        cps.set(cpsCount);
+        cpsCount = 0;
+    }
+
+    cpsCount++;
+};
+
+
+};
+
+Ops.Trigger.TriggersPerSecond.prototype = new CABLES.Op();
+CABLES.OPS["ece2f153-eb31-4268-b0e5-8143ad2fdd81"]={f:Ops.Trigger.TriggersPerSecond,objName:"Ops.Trigger.TriggersPerSecond"};
 
 
 
