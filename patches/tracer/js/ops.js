@@ -23,6 +23,7 @@ Ops.String=Ops.String || {};
 Ops.Boolean=Ops.Boolean || {};
 Ops.Devices=Ops.Devices || {};
 Ops.Trigger=Ops.Trigger || {};
+Ops.Website=Ops.Website || {};
 Ops.TimeLine=Ops.TimeLine || {};
 Ops.Extension=Ops.Extension || {};
 Ops.Gl.Meshes=Ops.Gl.Meshes || {};
@@ -36,6 +37,7 @@ Ops.Devices.Keyboard=Ops.Devices.Keyboard || {};
 Ops.Extension.FxHash=Ops.Extension.FxHash || {};
 Ops.User.futuretense=Ops.User.futuretense || {};
 Ops.Gl.TextureEffects=Ops.Gl.TextureEffects || {};
+Ops.Gl.TextureEffects.Noise=Ops.Gl.TextureEffects.Noise || {};
 
 
 
@@ -324,97 +326,6 @@ function update()
 
 Ops.Math.DegreeToVector.prototype = new CABLES.Op();
 CABLES.OPS["56b1618b-4eed-41a8-87a2-57397ffc9029"]={f:Ops.Math.DegreeToVector,objName:"Ops.Math.DegreeToVector"};
-
-
-
-
-// **************************************************************
-// 
-// Ops.Math.Accumulator
-// 
-// **************************************************************
-
-Ops.Math.Accumulator = function()
-{
-CABLES.Op.apply(this,arguments);
-const op=this;
-const attachments={};
-const
-    exe = op.inTrigger("Trigger in"),
-    inAddNumber = op.inValueFloat("Add to number", 0.0),
-    inMultiplier = op.inValueFloat("Multiplier to add number", 1.0),
-    inSetNumber = op.inValueFloat("Default Value", 1.0),
-    inSet = op.inTriggerButton("Set Default Value"),
-    outNumber = op.outNumber("Current value");
-
-let lastTime = performance.now();
-let currentNumber = 0.0;
-let firsttime = true;
-
-inSet.onTriggered = resetNumber;
-
-function resetNumber()
-{
-    currentNumber = inSetNumber.get();
-    outNumber.set(currentNumber);
-    firsttime = true;
-}
-
-exe.onTriggered = function ()
-{
-    if (!firsttime)
-    {
-        let diff = (performance.now() - lastTime) / 100;
-        currentNumber += inAddNumber.get() * diff * inMultiplier.get();
-        outNumber.set(currentNumber);
-    }
-    lastTime = performance.now();
-    firsttime = false;
-};
-
-
-};
-
-Ops.Math.Accumulator.prototype = new CABLES.Op();
-CABLES.OPS["460574ca-dca2-4283-8c37-57a8c446a51f"]={f:Ops.Math.Accumulator,objName:"Ops.Math.Accumulator"};
-
-
-
-
-// **************************************************************
-// 
-// Ops.Math.Multiply
-// 
-// **************************************************************
-
-Ops.Math.Multiply = function()
-{
-CABLES.Op.apply(this,arguments);
-const op=this;
-const attachments={};
-const
-    number1 = op.inValueFloat("number1", 1),
-    number2 = op.inValueFloat("number2", 2),
-    result = op.outNumber("result");
-
-op.setTitle("*");
-
-number1.onChange = number2.onChange = update;
-update();
-
-function update()
-{
-    const n1 = number1.get();
-    const n2 = number2.get();
-
-    result.set(n1 * n2);
-}
-
-
-};
-
-Ops.Math.Multiply.prototype = new CABLES.Op();
-CABLES.OPS["1bbdae06-fbb2-489b-9bcc-36c9d65bd441"]={f:Ops.Math.Multiply,objName:"Ops.Math.Multiply"};
 
 
 
@@ -1306,42 +1217,6 @@ CABLES.OPS["5f8ce5fc-9787-45c9-9a83-0eebd2c6de15"]={f:Ops.Vars.VarGetTexture_v2,
 
 // **************************************************************
 // 
-// Ops.Trigger.TriggerOnChangeTexture
-// 
-// **************************************************************
-
-Ops.Trigger.TriggerOnChangeTexture = function()
-{
-CABLES.Op.apply(this,arguments);
-const op=this;
-const attachments={};
-const
-    inval = op.inTexture("Texture"),
-    inFilter = op.inBool("Ignore empty/default Texture", false),
-    next = op.outTrigger("Changed"),
-    outTex = op.outTexture("Result", CGL.Texture.getEmptyTexture(op.patch.cgl));
-
-inval.onLinkChanged =
-inval.onChange = function ()
-{
-    const v = inval.get();
-    if (inFilter.get() && (v == CGL.Texture.getEmptyTexture(op.patch.cgl) || v == null)) return;
-
-    outTex.set(v || CGL.Texture.getEmptyTexture(op.patch.cgl));
-    next.trigger();
-};
-
-
-};
-
-Ops.Trigger.TriggerOnChangeTexture.prototype = new CABLES.Op();
-CABLES.OPS["d7260ecb-d862-496a-8a26-f8165ab49dd2"]={f:Ops.Trigger.TriggerOnChangeTexture,objName:"Ops.Trigger.TriggerOnChangeTexture"};
-
-
-
-
-// **************************************************************
-// 
 // Ops.Gl.TextureEffects.ScrollTexture
 // 
 // **************************************************************
@@ -1447,31 +1322,38 @@ CABLES.OPS["86fcfd8c-038d-4b91-9820-a08114f6b7eb"]={f:Ops.Math.Divide,objName:"O
 
 // **************************************************************
 // 
-// Ops.Value.Number
+// Ops.Math.Multiply
 // 
 // **************************************************************
 
-Ops.Value.Number = function()
+Ops.Math.Multiply = function()
 {
 CABLES.Op.apply(this,arguments);
 const op=this;
 const attachments={};
 const
-    v = op.inValueFloat("value"),
+    number1 = op.inValueFloat("number1", 1),
+    number2 = op.inValueFloat("number2", 2),
     result = op.outNumber("result");
 
-v.onChange = exec;
+op.setTitle("*");
 
-function exec()
+number1.onChange = number2.onChange = update;
+update();
+
+function update()
 {
-    result.set(Number(v.get()));
+    const n1 = number1.get();
+    const n2 = number2.get();
+
+    result.set(n1 * n2);
 }
 
 
 };
 
-Ops.Value.Number.prototype = new CABLES.Op();
-CABLES.OPS["8fb2bb5d-665a-4d0a-8079-12710ae453be"]={f:Ops.Value.Number,objName:"Ops.Value.Number"};
+Ops.Math.Multiply.prototype = new CABLES.Op();
+CABLES.OPS["1bbdae06-fbb2-489b-9bcc-36c9d65bd441"]={f:Ops.Math.Multiply,objName:"Ops.Math.Multiply"};
 
 
 
@@ -1666,6 +1548,37 @@ CABLES.OPS["1a1ef636-6d02-42ba-ae1e-627b917d0d2b"]={f:Ops.Math.Round,objName:"Op
 
 // **************************************************************
 // 
+// Ops.Value.Number
+// 
+// **************************************************************
+
+Ops.Value.Number = function()
+{
+CABLES.Op.apply(this,arguments);
+const op=this;
+const attachments={};
+const
+    v = op.inValueFloat("value"),
+    result = op.outNumber("result");
+
+v.onChange = exec;
+
+function exec()
+{
+    result.set(Number(v.get()));
+}
+
+
+};
+
+Ops.Value.Number.prototype = new CABLES.Op();
+CABLES.OPS["8fb2bb5d-665a-4d0a-8079-12710ae453be"]={f:Ops.Value.Number,objName:"Ops.Value.Number"};
+
+
+
+
+// **************************************************************
+// 
 // Ops.Value.SwitchNumber
 // 
 // **************************************************************
@@ -1701,70 +1614,6 @@ function update()
 
 Ops.Value.SwitchNumber.prototype = new CABLES.Op();
 CABLES.OPS["fbb89f72-f2e3-4d34-ad01-7d884a1bcdc0"]={f:Ops.Value.SwitchNumber,objName:"Ops.Value.SwitchNumber"};
-
-
-
-
-// **************************************************************
-// 
-// Ops.Math.Modulo
-// 
-// **************************************************************
-
-Ops.Math.Modulo = function()
-{
-CABLES.Op.apply(this,arguments);
-const op=this;
-const attachments={};
-const
-    number1 = op.inValueFloat("number1", 1),
-    number2 = op.inValueFloat("number2", 2),
-    pingpong = op.inValueBool("pingpong"),
-    result = op.outNumber("result");
-
-let calculateFunction = calculateModule;
-
-number1.onChange =
-number2.onChange = exec;
-
-pingpong.onChange = updatePingPong;
-
-exec();
-
-function exec()
-{
-    let n2 = number2.get();
-    let n1 = number1.get();
-
-    result.set(calculateFunction(n1, n2));
-}
-
-function calculateModule(n1, n2)
-{
-    let re = ((n1 % n2) + n2) % n2;
-    if (re != re) re = 0;
-    return re;
-}
-
-function calculatePingPong(i, n)
-{
-    let cycle = 2 * n;
-    i %= cycle;
-    if (i >= n) return cycle - i;
-    else return i;
-}
-
-function updatePingPong()
-{
-    if (pingpong.get()) calculateFunction = calculatePingPong;
-    else calculateFunction = calculateModule;
-}
-
-
-};
-
-Ops.Math.Modulo.prototype = new CABLES.Op();
-CABLES.OPS["ebc13b25-3705-4265-8f06-5f985b6a7bb1"]={f:Ops.Math.Modulo,objName:"Ops.Math.Modulo"};
 
 
 
@@ -2128,255 +1977,6 @@ CABLES.OPS["97e57613-6a51-41cf-9de5-fe3dbc2c69b2"]={f:Ops.TimeLine.TimeLinePlaye
 
 // **************************************************************
 // 
-// Ops.Trigger.Interval
-// 
-// **************************************************************
-
-Ops.Trigger.Interval = function()
-{
-CABLES.Op.apply(this,arguments);
-const op=this;
-const attachments={};
-const
-    interval = op.inValue("interval"),
-    trigger = op.outTrigger("trigger"),
-    active = op.inValueBool("Active", true);
-
-active.onChange = function ()
-{
-    if (!active.get())
-    {
-        clearTimeout(timeOutId);
-        timeOutId = -1;
-    }
-    else exec();
-};
-
-interval.set(1000);
-let timeOutId = -1;
-
-function exec()
-{
-    if (!active.get()) return;
-    if (timeOutId != -1) return;
-
-    timeOutId = setTimeout(function ()
-    {
-        timeOutId = -1;
-        trigger.trigger();
-        exec();
-    },
-    interval.get());
-}
-
-interval.onChange = exec;
-
-exec();
-
-
-};
-
-Ops.Trigger.Interval.prototype = new CABLES.Op();
-CABLES.OPS["3e9bae10-38af-4e36-9fcc-35faeeaf57f8"]={f:Ops.Trigger.Interval,objName:"Ops.Trigger.Interval"};
-
-
-
-
-// **************************************************************
-// 
-// Ops.Trigger.TriggerSend
-// 
-// **************************************************************
-
-Ops.Trigger.TriggerSend = function()
-{
-CABLES.Op.apply(this,arguments);
-const op=this;
-const attachments={};
-const trigger = op.inTriggerButton("Trigger");
-op.varName = op.inValueSelect("Named Trigger", [], "", true);
-
-op.varName.onChange = updateName;
-
-trigger.onTriggered = doTrigger;
-
-op.patch.addEventListener("namedTriggersChanged", updateVarNamesDropdown);
-
-updateVarNamesDropdown();
-
-function updateVarNamesDropdown()
-{
-    if (CABLES.UI)
-    {
-        const varnames = [];
-        const vars = op.patch.namedTriggers;
-        varnames.push("+ create new one");
-        for (const i in vars) varnames.push(i);
-        op.varName.uiAttribs.values = varnames;
-    }
-}
-
-function updateName()
-{
-    if (CABLES.UI)
-    {
-        if (op.varName.get() == "+ create new one")
-        {
-            new CABLES.UI.ModalDialog({
-                "prompt": true,
-                "title": "New Trigger",
-                "text": "Enter a name for the new trigger",
-                "promptValue": "",
-                "promptOk": (str) =>
-                {
-                    op.varName.set(str);
-                    op.patch.namedTriggers[str] = op.patch.namedTriggers[str] || [];
-                    updateVarNamesDropdown();
-                }
-            });
-            return;
-        }
-
-        op.refreshParams();
-    }
-
-    if (!op.patch.namedTriggers[op.varName.get()])
-    {
-        op.patch.namedTriggers[op.varName.get()] = op.patch.namedTriggers[op.varName.get()] || [];
-        op.patch.emitEvent("namedTriggersChanged");
-    }
-
-    op.setTitle(">" + op.varName.get());
-
-    op.refreshParams();
-    op.patch.emitEvent("opTriggerNameChanged", op, op.varName.get());
-}
-
-function doTrigger()
-{
-    const arr = op.patch.namedTriggers[op.varName.get()];
-    // fire an event even if noone is receiving this trigger
-    // this way TriggerReceiveFilter can still handle it
-    op.patch.emitEvent("namedTriggerSent", op.varName.get());
-
-    if (!arr)
-    {
-        op.setUiError("unknowntrigger", "unknown trigger");
-        return;
-    }
-    else op.setUiError("unknowntrigger", null);
-
-    for (let i = 0; i < arr.length; i++)
-    {
-        arr[i]();
-    }
-}
-
-
-};
-
-Ops.Trigger.TriggerSend.prototype = new CABLES.Op();
-CABLES.OPS["ce1eaf2b-943b-4dc0-ab5e-ee11b63c9ed0"]={f:Ops.Trigger.TriggerSend,objName:"Ops.Trigger.TriggerSend"};
-
-
-
-
-// **************************************************************
-// 
-// Ops.Math.OneMinus
-// 
-// **************************************************************
-
-Ops.Math.OneMinus = function()
-{
-CABLES.Op.apply(this,arguments);
-const op=this;
-const attachments={};
-const
-    inValue = op.inValue("Value"),
-    result = op.outNumber("Result");
-
-inValue.onChange = update;
-update();
-
-function update()
-{
-    result.set(1 - inValue.get());
-}
-
-
-};
-
-Ops.Math.OneMinus.prototype = new CABLES.Op();
-CABLES.OPS["f34d019d-59ae-40d6-a55d-a7691bbc40e0"]={f:Ops.Math.OneMinus,objName:"Ops.Math.OneMinus"};
-
-
-
-
-// **************************************************************
-// 
-// Ops.Math.Pow
-// 
-// **************************************************************
-
-Ops.Math.Pow = function()
-{
-CABLES.Op.apply(this,arguments);
-const op=this;
-const attachments={};
-const
-    base = op.inValueFloat("Base"),
-    exponent = op.inValueFloat("Exponent"),
-    result = op.outNumber("Result");
-
-exponent.set(2);
-
-base.onChange = update;
-exponent.onChange = update;
-
-function update()
-{
-    let r = Math.pow(base.get(), exponent.get());
-    if (isNaN(r))r = 0;
-    result.set(r);
-}
-
-
-};
-
-Ops.Math.Pow.prototype = new CABLES.Op();
-CABLES.OPS["3bb3f98f-27d6-44c4-b4e5-186e10f0809d"]={f:Ops.Math.Pow,objName:"Ops.Math.Pow"};
-
-
-
-
-// **************************************************************
-// 
-// Ops.Vars.VarSetNumber_v2
-// 
-// **************************************************************
-
-Ops.Vars.VarSetNumber_v2 = function()
-{
-CABLES.Op.apply(this,arguments);
-const op=this;
-const attachments={};
-const val = op.inValueFloat("Value", 0);
-op.varName = op.inDropDown("Variable", [], "", true);
-
-new CABLES.VarSetOpWrapper(op, "number", val, op.varName);
-
-
-};
-
-Ops.Vars.VarSetNumber_v2.prototype = new CABLES.Op();
-CABLES.OPS["b5249226-6095-4828-8a1c-080654e192fa"]={f:Ops.Vars.VarSetNumber_v2,objName:"Ops.Vars.VarSetNumber_v2"};
-
-
-
-
-// **************************************************************
-// 
 // Ops.Vars.VarGetNumber_v2
 // 
 // **************************************************************
@@ -2396,124 +1996,6 @@ new CABLES.VarGetOpWrapper(op, "number", op.varName, val);
 
 Ops.Vars.VarGetNumber_v2.prototype = new CABLES.Op();
 CABLES.OPS["421f5b52-c0fa-47c4-8b7a-012b9e1c864a"]={f:Ops.Vars.VarGetNumber_v2,objName:"Ops.Vars.VarGetNumber_v2"};
-
-
-
-
-// **************************************************************
-// 
-// Ops.Ui.VizGraph
-// 
-// **************************************************************
-
-Ops.Ui.VizGraph = function()
-{
-CABLES.Op.apply(this,arguments);
-const op=this;
-const attachments={};
-const
-    inNum1 = op.inFloat("Number 1"),
-    inNum2 = op.inFloat("Number 2"),
-    inNum3 = op.inFloat("Number 3"),
-    inNum4 = op.inFloat("Number 4"),
-    inNum5 = op.inFloat("Number 5"),
-    inNum6 = op.inFloat("Number 6"),
-    inNum7 = op.inFloat("Number 7"),
-    inNum8 = op.inFloat("Number 8"),
-    inReset = op.inTriggerButton("Reset");
-
-op.setUiAttrib({ "height": 150, "resizable": true });
-
-let buff = [];
-
-let max = -Number.MAX_VALUE;
-let min = Number.MAX_VALUE;
-
-inNum1.onLinkChanged =
-    inNum2.onLinkChanged =
-    inNum3.onLinkChanged =
-    inNum4.onLinkChanged =
-    inNum5.onLinkChanged =
-    inNum6.onLinkChanged =
-    inNum7.onLinkChanged =
-    inNum8.onLinkChanged =
-    inReset.onTriggered = () =>
-    {
-        max = -Number.MAX_VALUE;
-        min = Number.MAX_VALUE;
-        buff = [];
-    };
-
-op.renderVizLayer = (ctx, layer) =>
-{
-    const perf = CABLES.UI.uiProfiler.start("previewlayer graph");
-
-    const colors = [
-        "#00ffff",
-        "#ffff00",
-        "#ff00ff",
-        "#0000ff",
-        "#00ff00",
-        "#ff0000",
-        "#ffffff",
-        "#888888",
-    ];
-
-    ctx.fillStyle = "#222";
-    ctx.fillRect(layer.x, layer.y, layer.width, layer.height);
-
-    for (let p = 0; p < op.portsIn.length; p++)
-    {
-        if (!op.portsIn[p].isLinked()) continue;
-        const newVal = op.portsIn[p].get();
-
-        max = Math.max(op.portsIn[p].get(), max);
-        min = Math.min(op.portsIn[p].get(), min);
-
-        if (!buff[p]) buff[p] = [];
-        buff[p].push(newVal);
-        if (buff[p].length > 60) buff[p].shift();
-
-        const texSlot = 5;
-        const mulX = layer.width / 60;
-
-        ctx.lineWidth = 2;
-        ctx.strokeStyle = "#555555";
-
-        ctx.beginPath();
-        ctx.moveTo(layer.x, CABLES.map(0, min, max, layer.height, 0) + layer.y);
-        ctx.lineTo(layer.x + layer.width, CABLES.map(0, min, max, layer.height, 0) + layer.y);
-        ctx.stroke();
-
-        ctx.strokeStyle = colors[p];
-
-        ctx.beginPath();
-
-        for (let i = 0; i < buff[p].length; i++)
-        {
-            let y = buff[p][i];
-
-            y = CABLES.map(y, min, max, layer.height, 0);
-            y += layer.y;
-            if (i === 0)ctx.moveTo(layer.x, y);
-            else ctx.lineTo(layer.x + i * mulX, y);
-        }
-
-        ctx.stroke();
-    }
-
-    ctx.fillStyle = "#888";
-    ctx.fillText("max:" + Math.round(max * 100) / 100, layer.x + 10, layer.y + layer.height - 10);
-    ctx.fillText("min:" + Math.round(min * 100) / 100, layer.x + 10, layer.y + layer.height - 30);
-
-    perf.finish();
-};
-
-
-};
-
-Ops.Ui.VizGraph.prototype = new CABLES.Op();
-CABLES.OPS["13c54eb4-60ef-4b9c-8425-d52a431f5c87"]={f:Ops.Ui.VizGraph,objName:"Ops.Ui.VizGraph"};
 
 
 
@@ -3568,44 +3050,6 @@ op.renderVizLayer = (ctx, layer) =>
 
 Ops.Ui.VizTexture.prototype = new CABLES.Op();
 CABLES.OPS["4ea2d7b0-ca74-45db-962b-4d1965ac20c0"]={f:Ops.Ui.VizTexture,objName:"Ops.Ui.VizTexture"};
-
-
-
-
-// **************************************************************
-// 
-// Ops.Math.Sum
-// 
-// **************************************************************
-
-Ops.Math.Sum = function()
-{
-CABLES.Op.apply(this,arguments);
-const op=this;
-const attachments={};
-const
-    number1 = op.inValueFloat("number1", 1),
-    number2 = op.inValueFloat("number2", 1),
-    result = op.outNumber("result");
-
-op.setTitle("+");
-
-number1.onChange =
-number2.onChange = exec;
-exec();
-
-function exec()
-{
-    const v = number1.get() + number2.get();
-    if (!isNaN(v))
-        result.set(v);
-}
-
-
-};
-
-Ops.Math.Sum.prototype = new CABLES.Op();
-CABLES.OPS["c8fb181e-0b03-4b41-9e55-06b6267bc634"]={f:Ops.Math.Sum,objName:"Ops.Math.Sum"};
 
 
 
@@ -5111,419 +4555,25 @@ CABLES.OPS["beb3c979-5723-4283-a23a-34f4b5038b49"]={f:Ops.Boolean.OrNumber,objNa
 
 // **************************************************************
 // 
-// Ops.Trigger.TriggerReceive
+// Ops.Vars.VarSetNumber_v2
 // 
 // **************************************************************
 
-Ops.Trigger.TriggerReceive = function()
+Ops.Vars.VarSetNumber_v2 = function()
 {
 CABLES.Op.apply(this,arguments);
 const op=this;
 const attachments={};
-const next = op.outTrigger("Triggered");
-op.varName = op.inValueSelect("Named Trigger", [], "", true);
+const val = op.inValueFloat("Value", 0);
+op.varName = op.inDropDown("Variable", [], "", true);
 
-updateVarNamesDropdown();
-op.patch.addEventListener("namedTriggersChanged", updateVarNamesDropdown);
-
-let oldName = null;
-
-function doTrigger()
-{
-    next.trigger();
-}
-
-function updateVarNamesDropdown()
-{
-    if (CABLES.UI)
-    {
-        let varnames = [];
-        let vars = op.patch.namedTriggers;
-        // varnames.push('+ create new one');
-        for (let i in vars) varnames.push(i);
-        op.varName.uiAttribs.values = varnames;
-    }
-}
-
-op.varName.onChange = function ()
-{
-    if (oldName)
-    {
-        let oldCbs = op.patch.namedTriggers[oldName];
-        let a = oldCbs.indexOf(doTrigger);
-        if (a != -1) oldCbs.splice(a, 1);
-    }
-
-    op.setTitle(">" + op.varName.get());
-    op.patch.namedTriggers[op.varName.get()] = op.patch.namedTriggers[op.varName.get()] || [];
-    let cbs = op.patch.namedTriggers[op.varName.get()];
-
-    cbs.push(doTrigger);
-    oldName = op.varName.get();
-    updateError();
-    op.patch.emitEvent("opTriggerNameChanged", op, op.varName.get());
-};
-
-op.on("uiParamPanel", updateError);
-
-function updateError()
-{
-    if (!op.varName.get())
-    {
-        op.setUiError("unknowntrigger", "unknown trigger");
-    }
-    else op.setUiError("unknowntrigger", null);
-}
+new CABLES.VarSetOpWrapper(op, "number", val, op.varName);
 
 
 };
 
-Ops.Trigger.TriggerReceive.prototype = new CABLES.Op();
-CABLES.OPS["0816c999-f2db-466b-9777-2814573574c5"]={f:Ops.Trigger.TriggerReceive,objName:"Ops.Trigger.TriggerReceive"};
-
-
-
-
-// **************************************************************
-// 
-// Ops.Anim.InOutInAnim
-// 
-// **************************************************************
-
-Ops.Anim.InOutInAnim = function()
-{
-CABLES.Op.apply(this,arguments);
-const op=this;
-const attachments={};
-const anim = new CABLES.Anim();
-
-const
-    update = op.inTrigger("Update"),
-    duration1 = op.inValue("Duration Out", 0.25),
-    easing1 = anim.createPort(op, "Easing Out"),
-    value1 = op.inValue("Value Out", 0),
-    holdDuration = op.inValue("Hold duration", 0.0),
-    duration2 = op.inValue("Duration In", 0.25),
-    easing2 = anim.createPort(op, "Easing In"),
-    value2 = op.inValue("Value In", 1),
-    trigger = op.inTriggerButton("Start"),
-    next = op.outTrigger("Next"),
-    outVal = op.outNumber("Result", 0),
-    started = op.outTrigger("Started"),
-    middle = op.outTrigger("Middle"),
-    finished = op.outTrigger("finished");
-
-let time = 0;
-trigger.onTriggered = setupAnim;
-
-update.onTriggered = function ()
-{
-    time = CABLES.now() / 1000.0;
-    if (anim.isStarted(time)) outVal.set(anim.getValue(time));
-    else outVal.set(value2.get());
-
-    next.trigger();
-};
-
-value2.onChange = function ()
-{
-    outVal.set(value2.get());
-};
-
-function setupAnim()
-{
-    anim.clear();
-    // start
-    anim.setValue(time, value2.get(), function ()
-    {
-        started.trigger();
-    });
-    // attack
-    anim.setValue(time +
-                        duration1.get(), value1.get(), function ()
-    {
-
-    });
-    // Hold
-    anim.setValue(time +
-                        duration1.get() + holdDuration.get(), value1.get(), function ()
-    {
-        middle.trigger();
-    });
-    // release
-    anim.setValue(time +
-                        duration1.get() +
-                        duration2.get() + holdDuration.get(), value2.get(), function ()
-    {
-        finished.trigger();
-    });
-
-    anim.keys[0].setEasing(
-        anim.easingFromString(easing1.get()));
-
-    anim.keys[2].setEasing(
-        anim.easingFromString(easing2.get()));
-}
-
-
-};
-
-Ops.Anim.InOutInAnim.prototype = new CABLES.Op();
-CABLES.OPS["ae46d30d-9ea6-417b-968b-e7b5726afdde"]={f:Ops.Anim.InOutInAnim,objName:"Ops.Anim.InOutInAnim"};
-
-
-
-
-// **************************************************************
-// 
-// Ops.Anim.SimpleAnim
-// 
-// **************************************************************
-
-Ops.Anim.SimpleAnim = function()
-{
-CABLES.Op.apply(this,arguments);
-const op=this;
-const attachments={};
-const
-    exe = op.inTrigger("exe"),
-    reset = op.inTriggerButton("reset"),
-    rewind = op.inTriggerButton("rewind"),
-    inStart = op.inValueFloat("start", 0),
-    inEnd = op.inValueFloat("end", 1),
-    duration = op.inValueFloat("duration", 0.5),
-    loop = op.inValueBool("loop"),
-    waitForReset = op.inValueBool("Wait for Reset", true),
-    next = op.outTrigger("Next"),
-    result = op.outNumber("result"),
-    finished = op.outNumber("finished"),
-    finishedTrigger = op.outTrigger("Finished Trigger");
-
-const anim = new CABLES.Anim();
-let resetted = false;
-anim.createPort(op, "easing", init);
-let currentEasing = -1;
-loop.onChange = init;
-init();
-
-duration.onChange = init;
-
-
-function init()
-{
-    if (anim.keys.length != 3)
-    {
-        anim.setValue(0, 0);
-        anim.setValue(1, 0);
-        anim.setValue(2, 0);
-    }
-
-    anim.keys[0].time = CABLES.now() / 1000.0;
-    anim.keys[0].value = inStart.get();
-    if (anim.defaultEasing != currentEasing) anim.keys[0].setEasing(anim.defaultEasing);
-
-    anim.keys[1].time = duration.get() + CABLES.now() / 1000.0;
-    anim.keys[1].value = inEnd.get();
-
-    if (anim.defaultEasing != currentEasing) anim.keys[1].setEasing(anim.defaultEasing);
-
-    anim.loop = loop.get();
-    if (anim.loop)
-    {
-        anim.keys[2].time = (2.0 * duration.get()) + CABLES.now() / 1000.0;
-        anim.keys[2].value = inStart.get();
-        if (anim.defaultEasing != currentEasing) anim.keys[2].setEasing(anim.defaultEasing);
-    }
-    else
-    {
-        anim.keys[2].time = anim.keys[1].time;
-        anim.keys[2].value = anim.keys[1].value;
-        if (anim.defaultEasing != currentEasing) anim.keys[2].setEasing(anim.defaultEasing);
-    }
-    finished.set(false);
-
-    currentEasing = anim.defaultEasing;
-}
-
-reset.onTriggered = function ()
-{
-    resetted = true;
-    init();
-};
-
-rewind.onTriggered = function ()
-{
-    anim.keys[0].time = CABLES.now() / 1000.0;
-    anim.keys[0].value = inStart.get();
-
-    anim.keys[1].time = CABLES.now() / 1000.0;
-    anim.keys[1].value = inStart.get();
-
-    anim.keys[2].time = CABLES.now() / 1000.0;
-    anim.keys[2].value = inStart.get();
-
-    result.set(inStart.get());
-};
-
-exe.onTriggered = function ()
-{
-    if (waitForReset.get() && !resetted)
-    {
-        result.set(inStart.get());
-        return;
-    }
-    let t = CABLES.now() / 1000;
-    let v = anim.getValue(t);
-    result.set(v);
-    if (anim.hasEnded(t))
-    {
-        if (!finished.get()) finishedTrigger.trigger();
-        finished.set(true);
-    }
-
-    next.trigger();
-};
-
-
-};
-
-Ops.Anim.SimpleAnim.prototype = new CABLES.Op();
-CABLES.OPS["5b244b6e-c505-4743-b2cc-8119ef720028"]={f:Ops.Anim.SimpleAnim,objName:"Ops.Anim.SimpleAnim"};
-
-
-
-
-// **************************************************************
-// 
-// Ops.Html.LoadingIndicator
-// 
-// **************************************************************
-
-Ops.Html.LoadingIndicator = function()
-{
-CABLES.Op.apply(this,arguments);
-const op=this;
-const attachments={"css_ellipsis_css":".lds-ellipsis {\n\n}\n.lds-ellipsis div {\n  position: absolute;\n  /*top: 33px;*/\n  margin-top:-12px;\n  margin-left:-13px;\n  width: 13px;\n  height: 13px;\n  border-radius: 50%;\n  background: #fff;\n  animation-timing-function: cubic-bezier(0, 1, 1, 0);\n}\n.lds-ellipsis div:nth-child(1) {\n  left: 8px;\n  animation: lds-ellipsis1 0.6s infinite;\n}\n.lds-ellipsis div:nth-child(2) {\n  left: 8px;\n  animation: lds-ellipsis2 0.6s infinite;\n}\n.lds-ellipsis div:nth-child(3) {\n  left: 32px;\n  animation: lds-ellipsis2 0.6s infinite;\n}\n.lds-ellipsis div:nth-child(4) {\n  left: 56px;\n  animation: lds-ellipsis3 0.6s infinite;\n}\n@keyframes lds-ellipsis1 {\n  0% {\n    transform: scale(0);\n  }\n  100% {\n    transform: scale(1);\n  }\n}\n@keyframes lds-ellipsis3 {\n  0% {\n    transform: scale(1);\n  }\n  100% {\n    transform: scale(0);\n  }\n}\n@keyframes lds-ellipsis2 {\n  0% {\n    transform: translate(0, 0);\n  }\n  100% {\n    transform: translate(24px, 0);\n  }\n}\n","css_ring_css":".lds-ring {\n}\n.lds-ring div {\n  box-sizing: border-box;\n  display: block;\n  position: absolute;\n  width: 100%;\n  height: 100%;\n  margin: 0;\n  border: 3px solid #fff;\n  border-radius: 50%;\n  animation: lds-ring 1.2s cubic-bezier(0.5, 0, 0.5, 1) infinite;\n  border-color: #fff transparent transparent transparent;\n}\n.lds-ring div:nth-child(1) {\n  animation-delay: -0.45s;\n}\n.lds-ring div:nth-child(2) {\n  animation-delay: -0.3s;\n}\n.lds-ring div:nth-child(3) {\n  animation-delay: -0.15s;\n}\n@keyframes lds-ring {\n  0% {\n    transform: rotate(0deg);\n  }\n  100% {\n    transform: rotate(360deg);\n  }\n}\n","css_spinner_css":"._cables_spinner {\n  /*width: 40px;*/\n  /*height: 40px;*/\n  /*margin: 100px auto;*/\n  background-color: #777;\n\n  border-radius: 100%;\n  -webkit-animation: sk-scaleout 1.0s infinite ease-in-out;\n  animation: sk-scaleout 1.0s infinite ease-in-out;\n}\n\n@-webkit-keyframes sk-scaleout {\n  0% { -webkit-transform: scale(0) }\n  100% {\n    -webkit-transform: scale(1.0);\n    opacity: 0;\n  }\n}\n\n@keyframes sk-scaleout {\n  0% {\n    -webkit-transform: scale(0);\n    transform: scale(0);\n  } 100% {\n    -webkit-transform: scale(1.0);\n    transform: scale(1.0);\n    opacity: 0;\n  }\n}",};
-const
-    inVisible = op.inBool("Visible", true),
-    inStyle = op.inSwitch("Style", ["Spinner", "Ring", "Ellipsis"], "Ring");
-
-const div = document.createElement("div");
-div.dataset.op = op.id;
-const canvas = op.patch.cgl.canvas.parentElement;
-
-inStyle.onChange = updateStyle;
-
-div.appendChild(document.createElement("div"));
-div.appendChild(document.createElement("div"));
-div.appendChild(document.createElement("div"));
-
-const size = 50;
-
-div.style.width = size + "px";
-div.style.height = size + "px";
-div.style.top = "50%";
-div.style.left = "50%";
-// div.style.border="1px solid red";
-
-div.style["margin-left"] = "-" + size / 2 + "px";
-div.style["margin-top"] = "-" + size / 2 + "px";
-
-div.style.position = "absolute";
-div.style["z-index"] = "9999999";
-
-inVisible.onChange = updateVisible;
-
-let eleId = "css_loadingicon_" + CABLES.uuid();
-
-const styleEle = document.createElement("style");
-styleEle.type = "text/css";
-styleEle.id = eleId;
-
-let head = document.getElementsByTagName("body")[0];
-head.appendChild(styleEle);
-
-op.onDelete = () =>
-{
-    remove();
-    if (styleEle)styleEle.remove();
-};
-
-updateStyle();
-
-function updateStyle()
-{
-    const st = inStyle.get();
-    if (st == "Spinner")
-    {
-        div.classList.add("_cables_spinner");
-        styleEle.textContent = attachments.css_spinner_css;
-    }
-    else div.classList.remove("_cables_spinner");
-
-    if (st == "Ring")
-    {
-        div.classList.add("lds-ring");
-        styleEle.textContent = attachments.css_ring_css;
-    }
-    else div.classList.remove("lds-ring");
-
-    if (st == "Ellipsis")
-    {
-        div.classList.add("lds-ellipsis");
-        styleEle.textContent = attachments.css_ellipsis_css;
-    }
-    else div.classList.remove("lds-ellipsis");
-}
-
-function remove()
-{
-    div.remove();
-    // if (styleEle)styleEle.remove();
-}
-
-function updateVisible()
-{
-    remove();
-    if (inVisible.get()) canvas.appendChild(div);
-}
-
-
-};
-
-Ops.Html.LoadingIndicator.prototype = new CABLES.Op();
-CABLES.OPS["e102834c-6dcf-459c-9e22-44ebccfc0d3b"]={f:Ops.Html.LoadingIndicator,objName:"Ops.Html.LoadingIndicator"};
-
-
-
-
-// **************************************************************
-// 
-// Ops.Boolean.Not
-// 
-// **************************************************************
-
-Ops.Boolean.Not = function()
-{
-CABLES.Op.apply(this,arguments);
-const op=this;
-const attachments={};
-const
-    bool = op.inValueBool("Boolean"),
-    outbool = op.outBoolNum("Result");
-
-bool.changeAlways = true;
-
-bool.onChange = function ()
-{
-    outbool.set((!bool.get()));
-};
-
-
-};
-
-Ops.Boolean.Not.prototype = new CABLES.Op();
-CABLES.OPS["6d123c9f-7485-4fd9-a5c2-76e59dcbeb34"]={f:Ops.Boolean.Not,objName:"Ops.Boolean.Not"};
+Ops.Vars.VarSetNumber_v2.prototype = new CABLES.Op();
+CABLES.OPS["b5249226-6095-4828-8a1c-080654e192fa"]={f:Ops.Vars.VarSetNumber_v2,objName:"Ops.Vars.VarSetNumber_v2"};
 
 
 
@@ -5881,63 +4931,6 @@ CABLES.OPS["58e01e34-0f42-4861-ad9a-ed96e08f8565"]={f:Ops.Math.PowerOfTwoSize,ob
 
 // **************************************************************
 // 
-// Ops.Array.ArrayQuantizer
-// 
-// **************************************************************
-
-Ops.Array.ArrayQuantizer = function()
-{
-CABLES.Op.apply(this,arguments);
-const op=this;
-const attachments={};
-function closest(num, arr)
-{
-    let curr = arr[0];
-    let diff = Math.abs(num - curr);
-    for (let val = 0; val < arr.length; val++)
-    {
-        let newdiff = Math.abs(num - arr[val]);
-        if (newdiff < diff)
-        {
-            diff = newdiff;
-            curr = arr[val];
-        }
-    }
-
-    return curr;
-}
-
-const inValue = op.inFloat("Value", 0);
-const inScale = op.inArray("Constraints Array Input");
-const outQuantized = op.outNumber("Quantized Value");
-const outError = op.outNumber("Quantization Error");
-
-inValue.onChange = () =>
-{
-    if (!inScale.get())
-    {
-        outQuantized.set(inValue.get());
-        outError.set(0);
-        return;
-    }
-
-    const arr = inScale.get();
-    const quantized = closest(inValue.get(), arr);
-    outQuantized.set(quantized);
-    outError.set(quantized - inValue.get());
-};
-
-
-};
-
-Ops.Array.ArrayQuantizer.prototype = new CABLES.Op();
-CABLES.OPS["fc05b6ed-6584-4e37-aec2-fc659012ff60"]={f:Ops.Array.ArrayQuantizer,objName:"Ops.Array.ArrayQuantizer"};
-
-
-
-
-// **************************************************************
-// 
 // Ops.Trigger.TriggerCounter
 // 
 // **************************************************************
@@ -5981,6 +4974,81 @@ function doReset()
 
 Ops.Trigger.TriggerCounter.prototype = new CABLES.Op();
 CABLES.OPS["e640619f-235c-4543-bbf8-b358e0283180"]={f:Ops.Trigger.TriggerCounter,objName:"Ops.Trigger.TriggerCounter"};
+
+
+
+
+// **************************************************************
+// 
+// Ops.Trigger.TriggerReceive
+// 
+// **************************************************************
+
+Ops.Trigger.TriggerReceive = function()
+{
+CABLES.Op.apply(this,arguments);
+const op=this;
+const attachments={};
+const next = op.outTrigger("Triggered");
+op.varName = op.inValueSelect("Named Trigger", [], "", true);
+
+updateVarNamesDropdown();
+op.patch.addEventListener("namedTriggersChanged", updateVarNamesDropdown);
+
+let oldName = null;
+
+function doTrigger()
+{
+    next.trigger();
+}
+
+function updateVarNamesDropdown()
+{
+    if (CABLES.UI)
+    {
+        let varnames = [];
+        let vars = op.patch.namedTriggers;
+        // varnames.push('+ create new one');
+        for (let i in vars) varnames.push(i);
+        op.varName.uiAttribs.values = varnames;
+    }
+}
+
+op.varName.onChange = function ()
+{
+    if (oldName)
+    {
+        let oldCbs = op.patch.namedTriggers[oldName];
+        let a = oldCbs.indexOf(doTrigger);
+        if (a != -1) oldCbs.splice(a, 1);
+    }
+
+    op.setTitle(">" + op.varName.get());
+    op.patch.namedTriggers[op.varName.get()] = op.patch.namedTriggers[op.varName.get()] || [];
+    let cbs = op.patch.namedTriggers[op.varName.get()];
+
+    cbs.push(doTrigger);
+    oldName = op.varName.get();
+    updateError();
+    op.patch.emitEvent("opTriggerNameChanged", op, op.varName.get());
+};
+
+op.on("uiParamPanel", updateError);
+
+function updateError()
+{
+    if (!op.varName.get())
+    {
+        op.setUiError("unknowntrigger", "unknown trigger");
+    }
+    else op.setUiError("unknowntrigger", null);
+}
+
+
+};
+
+Ops.Trigger.TriggerReceive.prototype = new CABLES.Op();
+CABLES.OPS["0816c999-f2db-466b-9777-2814573574c5"]={f:Ops.Trigger.TriggerReceive,objName:"Ops.Trigger.TriggerReceive"};
 
 
 
@@ -6056,6 +5124,124 @@ op.onDelete = function ()
 
 Ops.Html.CSS_v2.prototype = new CABLES.Op();
 CABLES.OPS["a56d3edd-06ad-44ed-9810-dbf714600c67"]={f:Ops.Html.CSS_v2,objName:"Ops.Html.CSS_v2"};
+
+
+
+
+// **************************************************************
+// 
+// Ops.Ui.VizGraph
+// 
+// **************************************************************
+
+Ops.Ui.VizGraph = function()
+{
+CABLES.Op.apply(this,arguments);
+const op=this;
+const attachments={};
+const
+    inNum1 = op.inFloat("Number 1"),
+    inNum2 = op.inFloat("Number 2"),
+    inNum3 = op.inFloat("Number 3"),
+    inNum4 = op.inFloat("Number 4"),
+    inNum5 = op.inFloat("Number 5"),
+    inNum6 = op.inFloat("Number 6"),
+    inNum7 = op.inFloat("Number 7"),
+    inNum8 = op.inFloat("Number 8"),
+    inReset = op.inTriggerButton("Reset");
+
+op.setUiAttrib({ "height": 150, "resizable": true });
+
+let buff = [];
+
+let max = -Number.MAX_VALUE;
+let min = Number.MAX_VALUE;
+
+inNum1.onLinkChanged =
+    inNum2.onLinkChanged =
+    inNum3.onLinkChanged =
+    inNum4.onLinkChanged =
+    inNum5.onLinkChanged =
+    inNum6.onLinkChanged =
+    inNum7.onLinkChanged =
+    inNum8.onLinkChanged =
+    inReset.onTriggered = () =>
+    {
+        max = -Number.MAX_VALUE;
+        min = Number.MAX_VALUE;
+        buff = [];
+    };
+
+op.renderVizLayer = (ctx, layer) =>
+{
+    const perf = CABLES.UI.uiProfiler.start("previewlayer graph");
+
+    const colors = [
+        "#00ffff",
+        "#ffff00",
+        "#ff00ff",
+        "#0000ff",
+        "#00ff00",
+        "#ff0000",
+        "#ffffff",
+        "#888888",
+    ];
+
+    ctx.fillStyle = "#222";
+    ctx.fillRect(layer.x, layer.y, layer.width, layer.height);
+
+    for (let p = 0; p < op.portsIn.length; p++)
+    {
+        if (!op.portsIn[p].isLinked()) continue;
+        const newVal = op.portsIn[p].get();
+
+        max = Math.max(op.portsIn[p].get(), max);
+        min = Math.min(op.portsIn[p].get(), min);
+
+        if (!buff[p]) buff[p] = [];
+        buff[p].push(newVal);
+        if (buff[p].length > 60) buff[p].shift();
+
+        const texSlot = 5;
+        const mulX = layer.width / 60;
+
+        ctx.lineWidth = 2;
+        ctx.strokeStyle = "#555555";
+
+        ctx.beginPath();
+        ctx.moveTo(layer.x, CABLES.map(0, min, max, layer.height, 0) + layer.y);
+        ctx.lineTo(layer.x + layer.width, CABLES.map(0, min, max, layer.height, 0) + layer.y);
+        ctx.stroke();
+
+        ctx.strokeStyle = colors[p];
+
+        ctx.beginPath();
+
+        for (let i = 0; i < buff[p].length; i++)
+        {
+            let y = buff[p][i];
+
+            y = CABLES.map(y, min, max, layer.height, 0);
+            y += layer.y;
+            if (i === 0)ctx.moveTo(layer.x, y);
+            else ctx.lineTo(layer.x + i * mulX, y);
+        }
+
+        ctx.stroke();
+    }
+
+    ctx.fillStyle = "#888";
+    ctx.fillText("max:" + Math.round(max * 100) / 100, layer.x + 10, layer.y + layer.height - 10);
+    ctx.fillText("min:" + Math.round(min * 100) / 100, layer.x + 10, layer.y + layer.height - 30);
+
+    perf.finish();
+};
+
+
+};
+
+Ops.Ui.VizGraph.prototype = new CABLES.Op();
+CABLES.OPS["13c54eb4-60ef-4b9c-8425-d52a431f5c87"]={f:Ops.Ui.VizGraph,objName:"Ops.Ui.VizGraph"};
 
 
 
@@ -6357,6 +5543,44 @@ CABLES.OPS["b4c116ba-ab64-4903-80bb-35c8d65819a1"]={f:Ops.Math.RoundEven,objName
 
 // **************************************************************
 // 
+// Ops.Math.Sum
+// 
+// **************************************************************
+
+Ops.Math.Sum = function()
+{
+CABLES.Op.apply(this,arguments);
+const op=this;
+const attachments={};
+const
+    number1 = op.inValueFloat("number1", 1),
+    number2 = op.inValueFloat("number2", 1),
+    result = op.outNumber("result");
+
+op.setTitle("+");
+
+number1.onChange =
+number2.onChange = exec;
+exec();
+
+function exec()
+{
+    const v = number1.get() + number2.get();
+    if (!isNaN(v))
+        result.set(v);
+}
+
+
+};
+
+Ops.Math.Sum.prototype = new CABLES.Op();
+CABLES.OPS["c8fb181e-0b03-4b41-9e55-06b6267bc634"]={f:Ops.Math.Sum,objName:"Ops.Math.Sum"};
+
+
+
+
+// **************************************************************
+// 
 // Ops.Trigger.TriggerExtender
 // 
 // **************************************************************
@@ -6496,74 +5720,6 @@ CABLES.OPS["04fd113f-ade1-43fb-99fa-f8825f8814c0"]={f:Ops.Math.Compare.LessThan,
 
 // **************************************************************
 // 
-// Ops.Cables.UIMode
-// 
-// **************************************************************
-
-Ops.Cables.UIMode = function()
-{
-CABLES.Op.apply(this,arguments);
-const op=this;
-const attachments={};
-const
-    outUI = op.outBoolNum("UI", op.patch.isEditorMode()),
-    outRemoteViewer = op.outBoolNum("Remote Viewer", window.gui ? window.gui.isRemoteClient : false),
-    outCanvasMode = op.outNumber("Canvas Mode"),
-    outPatchVisible = op.outBoolNum("Patch Field Visible");
-
-if (CABLES.UI)
-{
-    gui.on("canvasModeChange", () =>
-    {
-        outCanvasMode.set(gui.getCanvasMode());
-        outPatchVisible.set(gui.patchView.element.classList.contains("hidden"));
-    });
-}
-
-
-};
-
-Ops.Cables.UIMode.prototype = new CABLES.Op();
-CABLES.OPS["7c110d60-829f-4b06-b3e4-0af911550570"]={f:Ops.Cables.UIMode,objName:"Ops.Cables.UIMode"};
-
-
-
-
-// **************************************************************
-// 
-// Ops.Boolean.And
-// 
-// **************************************************************
-
-Ops.Boolean.And = function()
-{
-CABLES.Op.apply(this,arguments);
-const op=this;
-const attachments={};
-const
-    bool0 = op.inValueBool("bool 1"),
-    bool1 = op.inValueBool("bool 2"),
-    result = op.outBoolNum("result");
-
-bool0.onChange =
-bool1.onChange = exec;
-
-function exec()
-{
-    result.set(bool1.get() && bool0.get());
-}
-
-
-};
-
-Ops.Boolean.And.prototype = new CABLES.Op();
-CABLES.OPS["c26e6ce0-8047-44bb-9bc8-5a4f911ed8ad"]={f:Ops.Boolean.And,objName:"Ops.Boolean.And"};
-
-
-
-
-// **************************************************************
-// 
 // Ops.Html.FullscreenMode
 // 
 // **************************************************************
@@ -6632,159 +5788,6 @@ function exitFs()
 
 Ops.Html.FullscreenMode.prototype = new CABLES.Op();
 CABLES.OPS["fe933b35-696d-4738-be03-c0c011ed67a0"]={f:Ops.Html.FullscreenMode,objName:"Ops.Html.FullscreenMode"};
-
-
-
-
-// **************************************************************
-// 
-// Ops.Devices.Mouse.MouseButtons
-// 
-// **************************************************************
-
-Ops.Devices.Mouse.MouseButtons = function()
-{
-CABLES.Op.apply(this,arguments);
-const op=this;
-const attachments={};
-const
-    mouseClickLeft = op.outTrigger("Click Left"),
-    mouseClickRight = op.outTrigger("Click Right"),
-    mouseDoubleClick = op.outTrigger("Double Click"),
-    mouseDownLeft = op.outBoolNum("Button pressed Left", false),
-    mouseDownMiddle = op.outBoolNum("Button pressed Middle", false),
-    mouseDownRight = op.outBoolNum("Button pressed Right", false),
-    triggerMouseDownLeft = op.outTrigger("Mouse Down Left"),
-    triggerMouseDownMiddle = op.outTrigger("Mouse Down Middle"),
-    triggerMouseDownRight = op.outTrigger("Mouse Down Right"),
-    triggerMouseUpLeft = op.outTrigger("Mouse Up Left"),
-    triggerMouseUpMiddle = op.outTrigger("Mouse Up Middle"),
-    triggerMouseUpRight = op.outTrigger("Mouse Up Right"),
-    area = op.inValueSelect("Area", ["Canvas", "Document"], "Canvas"),
-    active = op.inValueBool("Active", true);
-
-const cgl = op.patch.cgl;
-let listenerElement = null;
-area.onChange = updateListeners;
-op.onDelete = removeListeners;
-updateListeners();
-
-function onMouseDown(e)
-{
-    if (e.which == 1)
-    {
-        mouseDownLeft.set(true);
-        triggerMouseDownLeft.trigger();
-    }
-    else if (e.which == 2)
-    {
-        mouseDownMiddle.set(true);
-        triggerMouseDownMiddle.trigger();
-    }
-    else if (e.which == 3)
-    {
-        mouseDownRight.set(true);
-        triggerMouseDownRight.trigger();
-    }
-}
-
-function onMouseUp(e)
-{
-    if (e.which == 1)
-    {
-        mouseDownLeft.set(false);
-        triggerMouseUpLeft.trigger();
-    }
-    else if (e.which == 2)
-    {
-        mouseDownMiddle.set(false);
-        triggerMouseUpMiddle.trigger();
-    }
-    else if (e.which == 3)
-    {
-        mouseDownRight.set(false);
-        triggerMouseUpRight.trigger();
-    }
-}
-
-function onClickRight(e)
-{
-    mouseClickRight.trigger();
-    e.preventDefault();
-}
-
-function onDoubleClick(e)
-{
-    mouseDoubleClick.trigger();
-}
-
-function onmouseclick(e)
-{
-    mouseClickLeft.trigger();
-}
-
-function ontouchstart(event)
-{
-    if (event.touches && event.touches.length > 0)
-    {
-        event.touches[0].which = 1;
-        onMouseDown(event.touches[0]);
-    }
-}
-
-function ontouchend(event)
-{
-    onMouseUp({ "which": 1 });
-}
-
-function removeListeners()
-{
-    if (!listenerElement) return;
-    listenerElement.removeEventListener("touchend", ontouchend);
-    listenerElement.removeEventListener("touchcancel", ontouchend);
-    listenerElement.removeEventListener("touchstart", ontouchstart);
-    listenerElement.removeEventListener("dblclick", onDoubleClick);
-    listenerElement.removeEventListener("click", onmouseclick);
-    listenerElement.removeEventListener("mousedown", onMouseDown);
-    listenerElement.removeEventListener("mouseup", onMouseUp);
-    listenerElement.removeEventListener("contextmenu", onClickRight);
-    listenerElement.removeEventListener("mouseleave", onMouseUp);
-    listenerElement = null;
-}
-
-function addListeners()
-{
-    if (listenerElement)removeListeners();
-
-    listenerElement = cgl.canvas;
-    if (area.get() == "Document") listenerElement = document.body;
-
-    listenerElement.addEventListener("touchend", ontouchend);
-    listenerElement.addEventListener("touchcancel", ontouchend);
-    listenerElement.addEventListener("touchstart", ontouchstart);
-    listenerElement.addEventListener("dblclick", onDoubleClick);
-    listenerElement.addEventListener("click", onmouseclick);
-    listenerElement.addEventListener("mousedown", onMouseDown);
-    listenerElement.addEventListener("mouseup", onMouseUp);
-    listenerElement.addEventListener("contextmenu", onClickRight);
-    listenerElement.addEventListener("mouseleave", onMouseUp);
-}
-
-op.onLoaded = updateListeners;
-
-active.onChange = updateListeners;
-
-function updateListeners()
-{
-    removeListeners();
-    if (active.get()) addListeners();
-}
-
-
-};
-
-Ops.Devices.Mouse.MouseButtons.prototype = new CABLES.Op();
-CABLES.OPS["c7e5e545-c8a1-4fef-85c2-45422b947f0d"]={f:Ops.Devices.Mouse.MouseButtons,objName:"Ops.Devices.Mouse.MouseButtons"};
 
 
 
@@ -8033,32 +7036,31 @@ CABLES.OPS["51c24850-aa8b-41e4-936e-68ba718b5e39"]={f:Ops.Gl.ValidTexture,objNam
 
 // **************************************************************
 // 
-// Ops.Value.Boolean
+// Ops.Boolean.Not
 // 
 // **************************************************************
 
-Ops.Value.Boolean = function()
+Ops.Boolean.Not = function()
 {
 CABLES.Op.apply(this,arguments);
 const op=this;
 const attachments={};
 const
-    v = op.inValueBool("value", false),
-    result = op.outBoolNum("result");
+    bool = op.inValueBool("Boolean"),
+    outbool = op.outBoolNum("Result");
 
-result.set(false);
-v.onChange = exec;
+bool.changeAlways = true;
 
-function exec()
+bool.onChange = function ()
 {
-    if (result.get() != v.get()) result.set(v.get());
-}
+    outbool.set((!bool.get()));
+};
 
 
 };
 
-Ops.Value.Boolean.prototype = new CABLES.Op();
-CABLES.OPS["83e2d74c-9741-41aa-a4d7-1bda4ef55fb3"]={f:Ops.Value.Boolean,objName:"Ops.Value.Boolean"};
+Ops.Boolean.Not.prototype = new CABLES.Op();
+CABLES.OPS["6d123c9f-7485-4fd9-a5c2-76e59dcbeb34"]={f:Ops.Boolean.Not,objName:"Ops.Boolean.Not"};
 
 
 
@@ -8240,127 +7242,6 @@ function reload(addCachebuster, force = false)
 
 Ops.Json.AjaxRequest_v2.prototype = new CABLES.Op();
 CABLES.OPS["e0879058-5505-4dc4-b9ff-47a3d3c8a71a"]={f:Ops.Json.AjaxRequest_v2,objName:"Ops.Json.AjaxRequest_v2"};
-
-
-
-
-// **************************************************************
-// 
-// Ops.String.StringCompose_v3
-// 
-// **************************************************************
-
-Ops.String.StringCompose_v3 = function()
-{
-CABLES.Op.apply(this,arguments);
-const op=this;
-const attachments={};
-const
-    format=op.inString('Format',"hello $a, $b $c und $d"),
-    a=op.inString('String A','world'),
-    b=op.inString('String B',1),
-    c=op.inString('String C',2),
-    d=op.inString('String D',3),
-    e=op.inString('String E'),
-    f=op.inString('String F'),
-    result=op.outString("Result");
-
-format.onChange=
-    a.onChange=
-    b.onChange=
-    c.onChange=
-    d.onChange=
-    e.onChange=
-    f.onChange=update;
-
-update();
-
-function update()
-{
-    var str=format.get()||'';
-    if(typeof str!='string')
-        str='';
-
-    str = str.replace(/\$a/g, a.get());
-    str = str.replace(/\$b/g, b.get());
-    str = str.replace(/\$c/g, c.get());
-    str = str.replace(/\$d/g, d.get());
-    str = str.replace(/\$e/g, e.get());
-    str = str.replace(/\$f/g, f.get());
-
-    result.set(str);
-}
-
-};
-
-Ops.String.StringCompose_v3.prototype = new CABLES.Op();
-CABLES.OPS["6afea9f4-728d-4f3c-9e75-62ddc1448bf0"]={f:Ops.String.StringCompose_v3,objName:"Ops.String.StringCompose_v3"};
-
-
-
-
-// **************************************************************
-// 
-// Ops.Json.ParseObject_v2
-// 
-// **************************************************************
-
-Ops.Json.ParseObject_v2 = function()
-{
-CABLES.Op.apply(this,arguments);
-const op=this;
-const attachments={};
-const
-    str = op.inStringEditor("JSON String", "{}", "json"),
-    outObj = op.outObject("Result"),
-    isValid = op.outBoolNum("Valid");
-
-str.onChange = parse;
-parse();
-
-function parse()
-{
-    if (!str.get())
-    {
-        outObj.set(null);
-        isValid.set(false);
-        return;
-    }
-    try
-    {
-        const obj = JSON.parse(str.get());
-        outObj.setRef(obj);
-        isValid.set(true);
-        op.setUiError("invalidjson", null);
-    }
-    catch (ex)
-    {
-        op.logError(ex);
-        isValid.set(false);
-
-        let outStr = "";
-        const parts = ex.message.split(" ");
-        for (let i = 0; i < parts.length - 1; i++)
-        {
-            const num = parseFloat(parts[i + 1]);
-            if (num && parts[i] == "position")
-            {
-                const outStrA = str.get().substring(num - 15, num);
-                const outStrB = str.get().substring(num, num + 1);
-                const outStrC = str.get().substring(num + 1, num + 15);
-                outStr = "<span style=\"font-family:monospace;background-color:black;\">" + outStrA + "<span style=\"font-weight:bold;background-color:red;\">" + outStrB + "</span>" + outStrC + " </span>";
-            }
-        }
-
-        op.setUiError("invalidjson", "INVALID JSON<br/>can not parse string to object:<br/><b> " + ex.message + "</b><br/>" + outStr);
-    }
-}
-
-
-};
-
-Ops.Json.ParseObject_v2.prototype = new CABLES.Op();
-CABLES.OPS["2ce8a4d3-37d3-4cdc-abd1-a560fbe841ee"]={f:Ops.Json.ParseObject_v2,objName:"Ops.Json.ParseObject_v2"};
 
 
 
@@ -8858,6 +7739,42 @@ CABLES.OPS["cd07e587-432a-4a81-a2b7-51273cf32171"]={f:Ops.Gl.Textures.Base64ToTe
 
 // **************************************************************
 // 
+// Ops.Trigger.TriggerOnChangeTexture
+// 
+// **************************************************************
+
+Ops.Trigger.TriggerOnChangeTexture = function()
+{
+CABLES.Op.apply(this,arguments);
+const op=this;
+const attachments={};
+const
+    inval = op.inTexture("Texture"),
+    inFilter = op.inBool("Ignore empty/default Texture", false),
+    next = op.outTrigger("Changed"),
+    outTex = op.outTexture("Result", CGL.Texture.getEmptyTexture(op.patch.cgl));
+
+inval.onLinkChanged =
+inval.onChange = function ()
+{
+    const v = inval.get();
+    if (inFilter.get() && (v == CGL.Texture.getEmptyTexture(op.patch.cgl) || v == null)) return;
+
+    outTex.set(v || CGL.Texture.getEmptyTexture(op.patch.cgl));
+    next.trigger();
+};
+
+
+};
+
+Ops.Trigger.TriggerOnChangeTexture.prototype = new CABLES.Op();
+CABLES.OPS["d7260ecb-d862-496a-8a26-f8165ab49dd2"]={f:Ops.Trigger.TriggerOnChangeTexture,objName:"Ops.Trigger.TriggerOnChangeTexture"};
+
+
+
+
+// **************************************************************
+// 
 // Ops.User.futuretense.CEM_OpenCV_Canny
 // 
 // **************************************************************
@@ -9024,6 +7941,105 @@ inval.onChange = function ()
 
 Ops.Trigger.TriggerOnChangeString.prototype = new CABLES.Op();
 CABLES.OPS["319d07e0-5cbe-4bc1-89fb-a934fd41b0c4"]={f:Ops.Trigger.TriggerOnChangeString,objName:"Ops.Trigger.TriggerOnChangeString"};
+
+
+
+
+// **************************************************************
+// 
+// Ops.Trigger.TriggerSend
+// 
+// **************************************************************
+
+Ops.Trigger.TriggerSend = function()
+{
+CABLES.Op.apply(this,arguments);
+const op=this;
+const attachments={};
+const trigger = op.inTriggerButton("Trigger");
+op.varName = op.inValueSelect("Named Trigger", [], "", true);
+
+op.varName.onChange = updateName;
+
+trigger.onTriggered = doTrigger;
+
+op.patch.addEventListener("namedTriggersChanged", updateVarNamesDropdown);
+
+updateVarNamesDropdown();
+
+function updateVarNamesDropdown()
+{
+    if (CABLES.UI)
+    {
+        const varnames = [];
+        const vars = op.patch.namedTriggers;
+        varnames.push("+ create new one");
+        for (const i in vars) varnames.push(i);
+        op.varName.uiAttribs.values = varnames;
+    }
+}
+
+function updateName()
+{
+    if (CABLES.UI)
+    {
+        if (op.varName.get() == "+ create new one")
+        {
+            new CABLES.UI.ModalDialog({
+                "prompt": true,
+                "title": "New Trigger",
+                "text": "Enter a name for the new trigger",
+                "promptValue": "",
+                "promptOk": (str) =>
+                {
+                    op.varName.set(str);
+                    op.patch.namedTriggers[str] = op.patch.namedTriggers[str] || [];
+                    updateVarNamesDropdown();
+                }
+            });
+            return;
+        }
+
+        op.refreshParams();
+    }
+
+    if (!op.patch.namedTriggers[op.varName.get()])
+    {
+        op.patch.namedTriggers[op.varName.get()] = op.patch.namedTriggers[op.varName.get()] || [];
+        op.patch.emitEvent("namedTriggersChanged");
+    }
+
+    op.setTitle(">" + op.varName.get());
+
+    op.refreshParams();
+    op.patch.emitEvent("opTriggerNameChanged", op, op.varName.get());
+}
+
+function doTrigger()
+{
+    const arr = op.patch.namedTriggers[op.varName.get()];
+    // fire an event even if noone is receiving this trigger
+    // this way TriggerReceiveFilter can still handle it
+    op.patch.emitEvent("namedTriggerSent", op.varName.get());
+
+    if (!arr)
+    {
+        op.setUiError("unknowntrigger", "unknown trigger");
+        return;
+    }
+    else op.setUiError("unknowntrigger", null);
+
+    for (let i = 0; i < arr.length; i++)
+    {
+        arr[i]();
+    }
+}
+
+
+};
+
+Ops.Trigger.TriggerSend.prototype = new CABLES.Op();
+CABLES.OPS["ce1eaf2b-943b-4dc0-ab5e-ee11b63c9ed0"]={f:Ops.Trigger.TriggerSend,objName:"Ops.Trigger.TriggerSend"};
 
 
 
@@ -9943,103 +8959,33 @@ CABLES.OPS["83b4d148-8cb3-4a45-8824-957eeaf02e22"]={f:Ops.Json.ObjectKeys,objNam
 
 // **************************************************************
 // 
-// Ops.Trigger.GateTrigger
+// Ops.Boolean.And
 // 
 // **************************************************************
 
-Ops.Trigger.GateTrigger = function()
+Ops.Boolean.And = function()
 {
 CABLES.Op.apply(this,arguments);
 const op=this;
 const attachments={};
 const
-    exe = op.inTrigger('Execute'),
-    passThrough = op.inValueBool('Pass Through',true),
-    triggerOut = op.outTrigger('Trigger out');
+    bool0 = op.inValueBool("bool 1"),
+    bool1 = op.inValueBool("bool 2"),
+    result = op.outBoolNum("result");
 
-exe.onTriggered = function()
-{
-    if(passThrough.get())
-        triggerOut.trigger();
-}
-
-
-};
-
-Ops.Trigger.GateTrigger.prototype = new CABLES.Op();
-CABLES.OPS["65e8b8a2-ba13-485f-883a-2bcf377989da"]={f:Ops.Trigger.GateTrigger,objName:"Ops.Trigger.GateTrigger"};
-
-
-
-
-// **************************************************************
-// 
-// Ops.Value.TriggerOnChangeNumber
-// 
-// **************************************************************
-
-Ops.Value.TriggerOnChangeNumber = function()
-{
-CABLES.Op.apply(this,arguments);
-const op=this;
-const attachments={};
-const
-    inval = op.inFloat("Value"),
-    next = op.outTrigger("Next"),
-    number = op.outNumber("Number");
-
-inval.onChange = function ()
-{
-    number.set(inval.get());
-    next.trigger();
-};
-
-
-};
-
-Ops.Value.TriggerOnChangeNumber.prototype = new CABLES.Op();
-CABLES.OPS["f5c8c433-ce13-49c4-9a33-74e98f110ed0"]={f:Ops.Value.TriggerOnChangeNumber,objName:"Ops.Value.TriggerOnChangeNumber"};
-
-
-
-
-// **************************************************************
-// 
-// Ops.Boolean.IfTrueThen_v2
-// 
-// **************************************************************
-
-Ops.Boolean.IfTrueThen_v2 = function()
-{
-CABLES.Op.apply(this,arguments);
-const op=this;
-const attachments={};
-const
-    exe = op.inTrigger("exe"),
-    boolean = op.inValueBool("boolean", false),
-    triggerThen = op.outTrigger("then"),
-    triggerElse = op.outTrigger("else");
-
-exe.onTriggered = exec;
-
-let b = false;
-
-boolean.onChange = () =>
-{
-    b = boolean.get();
-};
+bool0.onChange =
+bool1.onChange = exec;
 
 function exec()
 {
-    if (b) triggerThen.trigger();
-    else triggerElse.trigger();
+    result.set(bool1.get() && bool0.get());
 }
 
 
 };
 
-Ops.Boolean.IfTrueThen_v2.prototype = new CABLES.Op();
-CABLES.OPS["9549e2ed-a544-4d33-a672-05c7854ccf5d"]={f:Ops.Boolean.IfTrueThen_v2,objName:"Ops.Boolean.IfTrueThen_v2"};
+Ops.Boolean.And.prototype = new CABLES.Op();
+CABLES.OPS["c26e6ce0-8047-44bb-9bc8-5a4f911ed8ad"]={f:Ops.Boolean.And,objName:"Ops.Boolean.And"};
 
 
 
@@ -10137,124 +9083,6 @@ array.onChange = update;
 
 Ops.Array.ArrayLength.prototype = new CABLES.Op();
 CABLES.OPS["ea508405-833d-411a-86b4-1a012c135c8a"]={f:Ops.Array.ArrayLength,objName:"Ops.Array.ArrayLength"};
-
-
-
-
-// **************************************************************
-// 
-// Ops.Value.PreviousValueStore
-// 
-// **************************************************************
-
-Ops.Value.PreviousValueStore = function()
-{
-CABLES.Op.apply(this,arguments);
-const op=this;
-const attachments={};
-const
-    val = op.inValueFloat("Value"),
-    outCurrent = op.outNumber("Current Value"),
-    outOldVal = op.outNumber("Previous Value");
-
-let oldValue = 0;
-
-val.onChange = function ()
-{
-    outOldVal.set(oldValue);
-    oldValue = val.get();
-    outCurrent.set(val.get());
-};
-
-
-};
-
-Ops.Value.PreviousValueStore.prototype = new CABLES.Op();
-CABLES.OPS["01716872-67bd-4b31-a4a2-e0ccadf48411"]={f:Ops.Value.PreviousValueStore,objName:"Ops.Value.PreviousValueStore"};
-
-
-
-
-// **************************************************************
-// 
-// Ops.Trigger.SetNumberOnTrigger
-// 
-// **************************************************************
-
-Ops.Trigger.SetNumberOnTrigger = function()
-{
-CABLES.Op.apply(this,arguments);
-const op=this;
-const attachments={};
-const
-    setValuePort = op.inTriggerButton("Set"),
-    valuePort = op.inValueFloat("Number"),
-    outNext = op.outTrigger("Next"),
-    outValuePort = op.outNumber("Out Value");
-
-outValuePort.changeAlways = true;
-
-setValuePort.onTriggered = function ()
-{
-    outValuePort.set(valuePort.get());
-    outNext.trigger();
-};
-
-
-};
-
-Ops.Trigger.SetNumberOnTrigger.prototype = new CABLES.Op();
-CABLES.OPS["9989b1c0-1073-4d5f-bfa0-36dd98b66e27"]={f:Ops.Trigger.SetNumberOnTrigger,objName:"Ops.Trigger.SetNumberOnTrigger"};
-
-
-
-
-// **************************************************************
-// 
-// Ops.Anim.Bang
-// 
-// **************************************************************
-
-Ops.Anim.Bang = function()
-{
-CABLES.Op.apply(this,arguments);
-const op=this;
-const attachments={};
-const
-    inUpdate = op.inTrigger("update"),
-    inBang = op.inTriggerButton("Bang"),
-    inDuration = op.inValue("Duration", 0.1),
-    invert = op.inBool("Invert", false),
-    outTrigger = op.outTrigger("Trigger Out"),
-    outValue = op.outNumber("Value");
-
-const anim = new CABLES.Anim();
-let startTime = CABLES.now();
-op.toWorkPortsNeedToBeLinked(inUpdate);
-
-inBang.onTriggered = function ()
-{
-    startTime = CABLES.now();
-
-    anim.clear();
-    anim.setValue(0, 1);
-    anim.setValue(inDuration.get(), 0);
-};
-
-inUpdate.onTriggered = function ()
-{
-    let v = anim.getValue((CABLES.now() - startTime) / 1000);
-    if (invert.get()) outValue.set(1.0 - v);
-    else outValue.set(v);
-
-    outTrigger.trigger();
-};
-
-
-};
-
-Ops.Anim.Bang.prototype = new CABLES.Op();
-CABLES.OPS["92ca45a7-5b4b-4238-956e-23d79bdc659f"]={f:Ops.Anim.Bang,objName:"Ops.Anim.Bang"};
 
 
 
@@ -10372,67 +9200,6 @@ function dataURIToBlob(dataURI, callback)
 
 Ops.Gl.DownloadTexture_v2.prototype = new CABLES.Op();
 CABLES.OPS["00d2a6ea-5843-43d0-9428-dbc47c112e6e"]={f:Ops.Gl.DownloadTexture_v2,objName:"Ops.Gl.DownloadTexture_v2"};
-
-
-
-
-// **************************************************************
-// 
-// Ops.Vars.VarGetString
-// 
-// **************************************************************
-
-Ops.Vars.VarGetString = function()
-{
-CABLES.Op.apply(this,arguments);
-const op=this;
-const attachments={};
-var val=op.outString("Value");
-op.varName=op.inValueSelect("Variable",[],"",true);
-
-new CABLES.VarGetOpWrapper(op,"string",op.varName,val);
-
-
-};
-
-Ops.Vars.VarGetString.prototype = new CABLES.Op();
-CABLES.OPS["3ad08cfc-bce6-4175-9746-fef2817a3b12"]={f:Ops.Vars.VarGetString,objName:"Ops.Vars.VarGetString"};
-
-
-
-
-// **************************************************************
-// 
-// Ops.Trigger.TriggerIfIncreased
-// 
-// **************************************************************
-
-Ops.Trigger.TriggerIfIncreased = function()
-{
-CABLES.Op.apply(this,arguments);
-const op=this;
-const attachments={};
-const
-    value = op.inFloat("Value"),
-    trigger = op.outTrigger("Trigger");
-
-let lastValue = -Number.MAX_VALUE;
-
-value.onChange = function ()
-{
-    const v = value.get();
-    if (v > lastValue)
-    {
-        trigger.trigger();
-    }
-    lastValue = v;
-};
-
-
-};
-
-Ops.Trigger.TriggerIfIncreased.prototype = new CABLES.Op();
-CABLES.OPS["bc820891-48c7-4287-9b5e-4196e192741b"]={f:Ops.Trigger.TriggerIfIncreased,objName:"Ops.Trigger.TriggerIfIncreased"};
 
 
 
@@ -10613,6 +9380,92 @@ op.renderVizLayer = (ctx, layer) =>
 
 Ops.Ui.VizArrayTable.prototype = new CABLES.Op();
 CABLES.OPS["af2eeaaf-ff86-4bfb-9a27-42f05160a5d8"]={f:Ops.Ui.VizArrayTable,objName:"Ops.Ui.VizArrayTable"};
+
+
+
+
+// **************************************************************
+// 
+// Ops.Trigger.GateTrigger
+// 
+// **************************************************************
+
+Ops.Trigger.GateTrigger = function()
+{
+CABLES.Op.apply(this,arguments);
+const op=this;
+const attachments={};
+const
+    exe = op.inTrigger('Execute'),
+    passThrough = op.inValueBool('Pass Through',true),
+    triggerOut = op.outTrigger('Trigger out');
+
+exe.onTriggered = function()
+{
+    if(passThrough.get())
+        triggerOut.trigger();
+}
+
+
+};
+
+Ops.Trigger.GateTrigger.prototype = new CABLES.Op();
+CABLES.OPS["65e8b8a2-ba13-485f-883a-2bcf377989da"]={f:Ops.Trigger.GateTrigger,objName:"Ops.Trigger.GateTrigger"};
+
+
+
+
+// **************************************************************
+// 
+// Ops.String.StringCompose_v3
+// 
+// **************************************************************
+
+Ops.String.StringCompose_v3 = function()
+{
+CABLES.Op.apply(this,arguments);
+const op=this;
+const attachments={};
+const
+    format=op.inString('Format',"hello $a, $b $c und $d"),
+    a=op.inString('String A','world'),
+    b=op.inString('String B',1),
+    c=op.inString('String C',2),
+    d=op.inString('String D',3),
+    e=op.inString('String E'),
+    f=op.inString('String F'),
+    result=op.outString("Result");
+
+format.onChange=
+    a.onChange=
+    b.onChange=
+    c.onChange=
+    d.onChange=
+    e.onChange=
+    f.onChange=update;
+
+update();
+
+function update()
+{
+    var str=format.get()||'';
+    if(typeof str!='string')
+        str='';
+
+    str = str.replace(/\$a/g, a.get());
+    str = str.replace(/\$b/g, b.get());
+    str = str.replace(/\$c/g, c.get());
+    str = str.replace(/\$d/g, d.get());
+    str = str.replace(/\$e/g, e.get());
+    str = str.replace(/\$f/g, f.get());
+
+    result.set(str);
+}
+
+};
+
+Ops.String.StringCompose_v3.prototype = new CABLES.Op();
+CABLES.OPS["6afea9f4-728d-4f3c-9e75-62ddc1448bf0"]={f:Ops.String.StringCompose_v3,objName:"Ops.String.StringCompose_v3"};
 
 
 
@@ -11108,82 +9961,6 @@ CABLES.OPS["98e19e37-88ca-4c07-bed7-a050dac31e3a"]={f:Ops.Devices.Mobile.Pinch,o
 
 // **************************************************************
 // 
-// Ops.Gl.TextureEffects.ScaleTexture_v2
-// 
-// **************************************************************
-
-Ops.Gl.TextureEffects.ScaleTexture_v2 = function()
-{
-CABLES.Op.apply(this,arguments);
-const op=this;
-const attachments={"scale_frag":"IN vec2 texCoord;\nUNI sampler2D tex;\nUNI sampler2D multiplierTex;\nUNI float amount;\nUNI float uScaleX,uScaleY;\nUNI float offsetX,offsetY;\nUNI float centerX,centerY;\n\n{{CGL.BLENDMODES3}}\n\nvoid main()\n{\n    float multiplier = 1.0;\n    vec2 uv = texCoord;\n\n    #ifdef MASK_SCALE\n        multiplier = dot(vec3(0.2126,0.7152,0.0722), texture(multiplierTex,texCoord).rgb);\n    #endif\n\n    uv.x = (uv.x - centerX) / (uScaleX * multiplier)  + centerX+offsetX ;\n    uv.y = (uv.y - centerY) / (uScaleY * multiplier)  + centerY+offsetY ;\n\n    vec4 col = texture(tex,uv);\n    vec4 base = texture(tex,texCoord);\n    float a=amount;\n\n    #ifdef CLEAR\n        base=vec4(0.0,0.0,0.0,0.0);\n    #endif\n\n    outColor=cgl_blendPixel(base,col,a);\n\n    if(uv.x>1.0||uv.y>1.0||uv.x<0.0||uv.y<0.0)\n        outColor.a=0.0;\n\n}\n",};
-const
-    render = op.inTrigger("render"),
-    multiplierTex = op.inTexture("Multiplier"),
-    blendMode = CGL.TextureEffect.AddBlendSelect(op, "Blend Mode", "normal"),
-    amount = op.inValueSlider("Amount", 1),
-    scaleX = op.inValue("Scale X", 1.5),
-    scaleY = op.inValue("Scale Y", 1.5),
-    offsetX = op.inFloat("offset X", 0),
-    offsetY = op.inFloat("offset Y", 0),
-    centerX = op.inFloat("center X", 0.5),
-    centerY = op.inFloat("center Y", 0.5),
-    inClear = op.inBool("Clear", true),
-    trigger = op.outTrigger("trigger");
-
-const cgl = op.patch.cgl;
-const shader = new CGL.Shader(cgl, op.name);
-
-shader.setSource(shader.getDefaultVertexShader(), attachments.scale_frag);
-
-const
-    textureUniform = new CGL.Uniform(shader, "t", "tex", 0),
-    textureMultiplierUniform = new CGL.Uniform(shader, "t", "multiplierTex", 1),
-    amountUniform = new CGL.Uniform(shader, "f", "amount", amount),
-    scaleXUniform = new CGL.Uniform(shader, "f", "uScaleX", scaleX),
-    scaleYUniform = new CGL.Uniform(shader, "f", "uScaleY", scaleY),
-    centerXUniform = new CGL.Uniform(shader, "f", "centerX", centerX),
-    centerYUniform = new CGL.Uniform(shader, "f", "centerY", centerY),
-    offsetXUniform = new CGL.Uniform(shader, "f", "offsetX", offsetX),
-    offsetYUniform = new CGL.Uniform(shader, "f", "offsetY", offsetY);
-
-CGL.TextureEffect.setupBlending(op, shader, blendMode, amount);
-
-inClear.onChange =
-multiplierTex.onChange = function ()
-{
-    shader.toggleDefine("MASK_SCALE", multiplierTex.isLinked());
-    shader.toggleDefine("CLEAR", inClear.get());
-};
-
-render.onTriggered = function ()
-{
-    if (!CGL.TextureEffect.checkOpInEffect(op)) return;
-
-    cgl.pushShader(shader);
-    cgl.currentTextureEffect.bind();
-
-    cgl.setTexture(0, cgl.currentTextureEffect.getCurrentSourceTexture().tex);
-
-    if (multiplierTex.get()) cgl.setTexture(1, multiplierTex.get().tex);
-
-    cgl.currentTextureEffect.finish();
-    cgl.popShader();
-
-    trigger.trigger();
-};
-
-
-};
-
-Ops.Gl.TextureEffects.ScaleTexture_v2.prototype = new CABLES.Op();
-CABLES.OPS["942ef040-9be9-4848-9122-61cb28cb7789"]={f:Ops.Gl.TextureEffects.ScaleTexture_v2,objName:"Ops.Gl.TextureEffects.ScaleTexture_v2"};
-
-
-
-
-// **************************************************************
-// 
 // Ops.Anim.Snap
 // 
 // **************************************************************
@@ -11629,317 +10406,6 @@ CABLES.OPS["7b9626db-536b-4bb4-85c3-95401bc60d1b"]={f:Ops.Devices.Mouse.MouseWhe
 
 // **************************************************************
 // 
-// Ops.Math.Compare.Equals
-// 
-// **************************************************************
-
-Ops.Math.Compare.Equals = function()
-{
-CABLES.Op.apply(this,arguments);
-const op=this;
-const attachments={};
-const
-    number1 = op.inValue("number1", 1),
-    number2 = op.inValue("number2", 1),
-    result = op.outBoolNum("result");
-
-number1.onChange =
-    number2.onChange = exec;
-exec();
-
-function exec()
-{
-    result.set(number1.get() == number2.get());
-}
-
-
-};
-
-Ops.Math.Compare.Equals.prototype = new CABLES.Op();
-CABLES.OPS["4dd3cc55-eebc-4187-9d4e-2e053a956fab"]={f:Ops.Math.Compare.Equals,objName:"Ops.Math.Compare.Equals"};
-
-
-
-
-// **************************************************************
-// 
-// Ops.String.Concat_v2
-// 
-// **************************************************************
-
-Ops.String.Concat_v2 = function()
-{
-CABLES.Op.apply(this,arguments);
-const op=this;
-const attachments={};
-const
-    string1 = op.inString("string1", "ABC"),
-    string2 = op.inString("string2", "XYZ"),
-    newLine = op.inValueBool("New Line", false),
-    active = op.inBool("Active", true),
-    result = op.outString("result");
-
-newLine.onChange =
-    string2.onChange =
-    string1.onChange =
-    active.onChange = exec;
-
-exec();
-
-function exec()
-{
-    if (!active.get())
-    {
-        return result.set(string1.get());
-    }
-    let s1 = string1.get();
-    let s2 = string2.get();
-    if (!s1 && !s2)
-    {
-        result.set("");
-        return;
-    }
-    if (!s1)s1 = "";
-    if (!s2)s2 = "";
-
-    let nl = "";
-    if (s1 && s2 && newLine.get())nl = "\n";
-    result.set(String(s1) + nl + String(s2));
-}
-
-
-};
-
-Ops.String.Concat_v2.prototype = new CABLES.Op();
-CABLES.OPS["a52722aa-0ca9-402c-a844-b7e98a6c6e60"]={f:Ops.String.Concat_v2,objName:"Ops.String.Concat_v2"};
-
-
-
-
-// **************************************************************
-// 
-// Ops.Value.NumberSwitchBoolean
-// 
-// **************************************************************
-
-Ops.Value.NumberSwitchBoolean = function()
-{
-CABLES.Op.apply(this,arguments);
-const op=this;
-const attachments={};
-const
-    inBool = op.inValueBool("Boolean"),
-    valFalse = op.inValue("Value false", 0),
-    valTrue = op.inValue("Value true", 1),
-    outVal = op.outNumber("Result");
-
-inBool.onChange =
-    valTrue.onChange =
-    valFalse.onChange = update;
-
-op.setPortGroup("Output Values", [valTrue, valFalse]);
-
-function update()
-{
-    if (inBool.get()) outVal.set(valTrue.get());
-    else outVal.set(valFalse.get());
-}
-
-
-};
-
-Ops.Value.NumberSwitchBoolean.prototype = new CABLES.Op();
-CABLES.OPS["637c5fa8-840d-4535-96ab-3d27b458a8ba"]={f:Ops.Value.NumberSwitchBoolean,objName:"Ops.Value.NumberSwitchBoolean"};
-
-
-
-
-// **************************************************************
-// 
-// Ops.Math.MathExpression
-// 
-// **************************************************************
-
-Ops.Math.MathExpression = function()
-{
-CABLES.Op.apply(this,arguments);
-const op=this;
-const attachments={};
-const inA = op.inFloat("A", 0);
-const inB = op.inFloat("B", 1);
-const inC = op.inFloat("C", 2);
-const inD = op.inFloat("D", 3);
-op.setPortGroup("Parameters", [inA, inB, inC, inD]);
-const inExpression = op.inString("Expression", "a*(b+c+d)");
-op.setPortGroup("Expression", [inExpression]);
-const outResult = op.outNumber("Result");
-const outExpressionIsValid = op.outBool("Expression Valid");
-
-let currentFunction = inExpression.get();
-let functionValid = false;
-
-const createFunction = () =>
-{
-    try
-    {
-        currentFunction = new Function("m", "a", "b", "c", "d", `with(m) { return ${inExpression.get()} }`);
-        functionValid = true;
-        evaluateFunction();
-        outExpressionIsValid.set(functionValid);
-    }
-    catch (e)
-    {
-        functionValid = false;
-        outExpressionIsValid.set(functionValid);
-        if (e instanceof ReferenceError || e instanceof SyntaxError) return;
-    }
-};
-
-const evaluateFunction = () =>
-{
-    if (functionValid)
-    {
-        outResult.set(currentFunction(Math, inA.get(), inB.get(), inC.get(), inD.get()));
-        if (!inExpression.get()) outResult.set(0);
-    }
-
-    outExpressionIsValid.set(functionValid);
-};
-
-
-inA.onChange = inB.onChange = inC.onChange = inD.onChange = evaluateFunction;
-inExpression.onChange = createFunction;
-createFunction();
-
-
-};
-
-Ops.Math.MathExpression.prototype = new CABLES.Op();
-CABLES.OPS["d2343a1e-64ea-45b2-99ed-46e167bbdcd3"]={f:Ops.Math.MathExpression,objName:"Ops.Math.MathExpression"};
-
-
-
-
-// **************************************************************
-// 
-// Ops.Gl.TextureEffects.FastBlur_v2
-// 
-// **************************************************************
-
-Ops.Gl.TextureEffects.FastBlur_v2 = function()
-{
-CABLES.Op.apply(this,arguments);
-const op=this;
-const attachments={"blur_frag":"\nUNI sampler2D tex;\n#ifdef USE_MASK\n    UNI sampler2D texMask;\n#endif\nUNI float amount;\nUNI float pass;\n\nIN vec2 texCoord;\n\nUNI float dirX;\nUNI float dirY;\nUNI float width;\nUNI float height;\n\nIN vec2 coord0;\nIN vec2 coord1;\nIN vec2 coord2;\nIN vec2 coord3;\nIN vec2 coord4;\nIN vec2 coord5;\nIN vec2 coord6;\n\n#ifdef HAS_MASK\n    UNI sampler2D imageMask;\n#endif\n\nvoid main()\n{\n    vec4 color = vec4(0.0);\n\n    #ifdef USE_MASK\n        #ifdef MASK_INVERT\n            if(texture(texMask,texCoord).r<0.5)\n            {\n                outColor= texture(tex, texCoord);\n                return;\n            }\n        #endif\n\n        #ifndef MASK_INVERT\n            if(texture(texMask,texCoord).r>0.5)\n            {\n                outColor= texture(tex, texCoord);\n                return;\n            }\n        #endif\n    #endif\n\n    color += texture(tex, coord0) * 0.06927096443792478;\n    color += texture(tex, coord1) * 0.1383328848652136;\n    color += texture(tex, coord2) * 0.21920904690397863;\n    color += texture(tex, coord3) * 0.14637421;\n    color += texture(tex, coord4) * 0.21920904690397863;\n    color += texture(tex, coord5) * 0.1383328848652136;\n    color += texture(tex, coord6) * 0.06927096443795711;\n\n    outColor= color;\n}","blur_vert":"\nIN vec3 vPosition;\nIN vec2 attrTexCoord;\nIN vec3 attrVertNormal;\nOUT vec2 texCoord;\nOUT vec3 norm;\nUNI mat4 projMatrix;\nUNI mat4 mvMatrix;\nUNI mat4 modelMatrix;\n\nUNI float pass;\nUNI float dirX;\nUNI float dirY;\nUNI float width;\nUNI float height;\n\nOUT vec2 coord0;\nOUT vec2 coord1;\nOUT vec2 coord2;\nOUT vec2 coord3;\nOUT vec2 coord4;\nOUT vec2 coord5;\nOUT vec2 coord6;\n\nvoid main()\n{\n    texCoord=attrTexCoord;\n    norm=attrVertNormal;\n    vec4 pos=vec4(vPosition,  1.0);\n    {{MODULE_VERTEX_POSITION}}\n\n    vec2 dir=vec2(dirX,dirY);\n    vec2 res=vec2( (1.) / width , (1.) / height )*dir;\n\n    coord3= attrTexCoord;\n\n    coord0= attrTexCoord + (-3.0368997744118595 * res);\n    coord1= attrTexCoord + (-2.089778445362373 * res);\n    coord2= attrTexCoord + (-1.2004366090034069 * res);\n    coord4= attrTexCoord + (1.2004366090034069 * res);\n    coord5= attrTexCoord + (2.089778445362373* res);\n    coord6= attrTexCoord + (3.0368997744118595 * res);\n\n    #ifdef CLAMP\n        coord0=clamp(coord0,0.0,1.0);\n        coord1=clamp(coord1,0.0,1.0);\n        coord2=clamp(coord2,0.0,1.0);\n        coord3=clamp(coord3,0.0,1.0);\n        coord4=clamp(coord4,0.0,1.0);\n        coord5=clamp(coord5,0.0,1.0);\n        coord6=clamp(coord6,0.0,1.0);\n    #endif\n\n    gl_Position = projMatrix * mvMatrix * pos;\n}\n",};
-// http://dev.theomader.com/gaussian-kernel-calculator/
-// http://rastergrid.com/blog/2010/09/efficient-gaussian-blur-with-linear-sampling/
-
-const
-    render = op.inTrigger("render"),
-    trigger = op.outTrigger("trigger"),
-    inPasses = op.inFloat("Passes", 3),
-    clamp = op.inBool("Clamp", false),
-    direction = op.inDropDown("direction", ["both", "vertical", "horizontal"], "both"),
-    mask = op.inTexture("Mask"),
-    maskInvert = op.inBool("Mask Invert", false);
-
-const cgl = op.patch.cgl;
-const shader = new CGL.Shader(cgl, "fastblur");
-
-op.setPortGroup("Mask", [mask, maskInvert]);
-
-shader.setSource(attachments.blur_vert, attachments.blur_frag);
-const
-    textureUniform = new CGL.Uniform(shader, "t", "tex", 0),
-    uniDirX = new CGL.Uniform(shader, "f", "dirX", 0),
-    uniDirY = new CGL.Uniform(shader, "f", "dirY", 0),
-    uniWidth = new CGL.Uniform(shader, "f", "width", 0),
-    uniHeight = new CGL.Uniform(shader, "f", "height", 0),
-    uniPass = new CGL.Uniform(shader, "f", "pass", 0),
-    uniAmount = new CGL.Uniform(shader, "f", "amount", inPasses.get()),
-    textureAlpha = new CGL.Uniform(shader, "t", "texMask", 1);
-
-inPasses.onChange = () => { uniAmount.setValue(inPasses.get()); };
-
-let dir = 0;
-direction.onChange = () =>
-{
-    if (direction.get() == "both") dir = 0;
-    if (direction.get() == "horizontal") dir = 1;
-    if (direction.get() == "vertical") dir = 2;
-};
-
-clamp.onChange = () => { shader.toggleDefine("CLAMP", clamp.get()); };
-
-maskInvert.onChange =
-    mask.onChange = updateDefines;
-updateDefines();
-
-function updateDefines()
-{
-    shader.toggleDefine("USE_MASK", mask.isLinked());
-    shader.toggleDefine("MASK_INVERT", maskInvert.get());
-
-    maskInvert.setUiAttribs({ "greyout": !mask.isLinked() });
-}
-
-render.onTriggered = function ()
-{
-    if (!CGL.TextureEffect.checkOpInEffect(op, 3)) return;
-
-    uniWidth.setValue(cgl.currentTextureEffect.getCurrentSourceTexture().width);
-    uniHeight.setValue(cgl.currentTextureEffect.getCurrentSourceTexture().height);
-    const numPasses = inPasses.get();
-
-    if (mask.get())cgl.setTexture(1, mask.get().tex);
-
-    for (let i = 0; i < numPasses; i++)
-    {
-        cgl.pushShader(shader);
-
-        uniPass.setValue(i / numPasses);
-
-        // first pass
-        if (dir === 0 || dir == 2)
-        {
-            cgl.currentTextureEffect.bind();
-            cgl.setTexture(0, cgl.currentTextureEffect.getCurrentSourceTexture().tex);
-
-            uniDirX.setValue(0.0);
-            uniDirY.setValue(1.0 + (i * i));
-
-            cgl.currentTextureEffect.finish();
-        }
-
-        // second pass
-        if (dir === 0 || dir == 1)
-        {
-            cgl.currentTextureEffect.bind();
-            cgl.setTexture(0, cgl.currentTextureEffect.getCurrentSourceTexture().tex);
-
-            uniDirX.setValue(1.0 + (i * i));
-            uniDirY.setValue(0.0);
-
-            cgl.currentTextureEffect.finish();
-        }
-
-        cgl.popShader();
-    }
-
-    trigger.trigger();
-};
-
-
-};
-
-Ops.Gl.TextureEffects.FastBlur_v2.prototype = new CABLES.Op();
-CABLES.OPS["61ed277f-d096-43b2-9de8-dc87fb3a9169"]={f:Ops.Gl.TextureEffects.FastBlur_v2,objName:"Ops.Gl.TextureEffects.FastBlur_v2"};
-
-
-
-
-// **************************************************************
-// 
 // Ops.Gl.TextureEffects.EdgeDetection_v4
 // 
 // **************************************************************
@@ -12234,6 +10700,31 @@ CABLES.OPS["545e7225-73b0-4d40-923b-4b39940403a8"]={f:Ops.Debug.ConsoleLog,objNa
 
 // **************************************************************
 // 
+// Ops.Vars.VarGetString
+// 
+// **************************************************************
+
+Ops.Vars.VarGetString = function()
+{
+CABLES.Op.apply(this,arguments);
+const op=this;
+const attachments={};
+var val=op.outString("Value");
+op.varName=op.inValueSelect("Variable",[],"",true);
+
+new CABLES.VarGetOpWrapper(op,"string",op.varName,val);
+
+
+};
+
+Ops.Vars.VarGetString.prototype = new CABLES.Op();
+CABLES.OPS["3ad08cfc-bce6-4175-9746-fef2817a3b12"]={f:Ops.Vars.VarGetString,objName:"Ops.Vars.VarGetString"};
+
+
+
+
+// **************************************************************
+// 
 // Ops.Vars.VarSetArray_v2
 // 
 // **************************************************************
@@ -12350,6 +10841,70 @@ function update()
 
 Ops.Array.ArrayGetNumber.prototype = new CABLES.Op();
 CABLES.OPS["d1189078-70cf-437d-9a37-b2ebe89acdaf"]={f:Ops.Array.ArrayGetNumber,objName:"Ops.Array.ArrayGetNumber"};
+
+
+
+
+// **************************************************************
+// 
+// Ops.Math.Modulo
+// 
+// **************************************************************
+
+Ops.Math.Modulo = function()
+{
+CABLES.Op.apply(this,arguments);
+const op=this;
+const attachments={};
+const
+    number1 = op.inValueFloat("number1", 1),
+    number2 = op.inValueFloat("number2", 2),
+    pingpong = op.inValueBool("pingpong"),
+    result = op.outNumber("result");
+
+let calculateFunction = calculateModule;
+
+number1.onChange =
+number2.onChange = exec;
+
+pingpong.onChange = updatePingPong;
+
+exec();
+
+function exec()
+{
+    let n2 = number2.get();
+    let n1 = number1.get();
+
+    result.set(calculateFunction(n1, n2));
+}
+
+function calculateModule(n1, n2)
+{
+    let re = ((n1 % n2) + n2) % n2;
+    if (re != re) re = 0;
+    return re;
+}
+
+function calculatePingPong(i, n)
+{
+    let cycle = 2 * n;
+    i %= cycle;
+    if (i >= n) return cycle - i;
+    else return i;
+}
+
+function updatePingPong()
+{
+    if (pingpong.get()) calculateFunction = calculatePingPong;
+    else calculateFunction = calculateModule;
+}
+
+
+};
+
+Ops.Math.Modulo.prototype = new CABLES.Op();
+CABLES.OPS["ebc13b25-3705-4265-8f06-5f985b6a7bb1"]={f:Ops.Math.Modulo,objName:"Ops.Math.Modulo"};
 
 
 
@@ -12860,6 +11415,109 @@ CABLES.OPS["cda1a98e-5e16-40bd-9b18-a67e9eaad5a1"]={f:Ops.Math.Clamp,objName:"Op
 
 // **************************************************************
 // 
+// Ops.Math.OneMinus
+// 
+// **************************************************************
+
+Ops.Math.OneMinus = function()
+{
+CABLES.Op.apply(this,arguments);
+const op=this;
+const attachments={};
+const
+    inValue = op.inValue("Value"),
+    result = op.outNumber("Result");
+
+inValue.onChange = update;
+update();
+
+function update()
+{
+    result.set(1 - inValue.get());
+}
+
+
+};
+
+Ops.Math.OneMinus.prototype = new CABLES.Op();
+CABLES.OPS["f34d019d-59ae-40d6-a55d-a7691bbc40e0"]={f:Ops.Math.OneMinus,objName:"Ops.Math.OneMinus"};
+
+
+
+
+// **************************************************************
+// 
+// Ops.Math.Pow
+// 
+// **************************************************************
+
+Ops.Math.Pow = function()
+{
+CABLES.Op.apply(this,arguments);
+const op=this;
+const attachments={};
+const
+    base = op.inValueFloat("Base"),
+    exponent = op.inValueFloat("Exponent"),
+    result = op.outNumber("Result");
+
+exponent.set(2);
+
+base.onChange = update;
+exponent.onChange = update;
+
+function update()
+{
+    let r = Math.pow(base.get(), exponent.get());
+    if (isNaN(r))r = 0;
+    result.set(r);
+}
+
+
+};
+
+Ops.Math.Pow.prototype = new CABLES.Op();
+CABLES.OPS["3bb3f98f-27d6-44c4-b4e5-186e10f0809d"]={f:Ops.Math.Pow,objName:"Ops.Math.Pow"};
+
+
+
+
+// **************************************************************
+// 
+// Ops.Math.Compare.Equals
+// 
+// **************************************************************
+
+Ops.Math.Compare.Equals = function()
+{
+CABLES.Op.apply(this,arguments);
+const op=this;
+const attachments={};
+const
+    number1 = op.inValue("number1", 1),
+    number2 = op.inValue("number2", 1),
+    result = op.outBoolNum("result");
+
+number1.onChange =
+    number2.onChange = exec;
+exec();
+
+function exec()
+{
+    result.set(number1.get() == number2.get());
+}
+
+
+};
+
+Ops.Math.Compare.Equals.prototype = new CABLES.Op();
+CABLES.OPS["4dd3cc55-eebc-4187-9d4e-2e053a956fab"]={f:Ops.Math.Compare.Equals,objName:"Ops.Math.Compare.Equals"};
+
+
+
+
+// **************************************************************
+// 
 // Ops.Anim.Timer_v2
 // 
 // **************************************************************
@@ -13036,6 +11694,2560 @@ exe.onTriggered = function ()
 
 Ops.Trigger.TriggersPerSecond.prototype = new CABLES.Op();
 CABLES.OPS["ece2f153-eb31-4268-b0e5-8143ad2fdd81"]={f:Ops.Trigger.TriggersPerSecond,objName:"Ops.Trigger.TriggersPerSecond"};
+
+
+
+
+// **************************************************************
+// 
+// Ops.Devices.Mouse.MouseButtons
+// 
+// **************************************************************
+
+Ops.Devices.Mouse.MouseButtons = function()
+{
+CABLES.Op.apply(this,arguments);
+const op=this;
+const attachments={};
+const
+    mouseClickLeft = op.outTrigger("Click Left"),
+    mouseClickRight = op.outTrigger("Click Right"),
+    mouseDoubleClick = op.outTrigger("Double Click"),
+    mouseDownLeft = op.outBoolNum("Button pressed Left", false),
+    mouseDownMiddle = op.outBoolNum("Button pressed Middle", false),
+    mouseDownRight = op.outBoolNum("Button pressed Right", false),
+    triggerMouseDownLeft = op.outTrigger("Mouse Down Left"),
+    triggerMouseDownMiddle = op.outTrigger("Mouse Down Middle"),
+    triggerMouseDownRight = op.outTrigger("Mouse Down Right"),
+    triggerMouseUpLeft = op.outTrigger("Mouse Up Left"),
+    triggerMouseUpMiddle = op.outTrigger("Mouse Up Middle"),
+    triggerMouseUpRight = op.outTrigger("Mouse Up Right"),
+    area = op.inValueSelect("Area", ["Canvas", "Document"], "Canvas"),
+    active = op.inValueBool("Active", true);
+
+const cgl = op.patch.cgl;
+let listenerElement = null;
+area.onChange = updateListeners;
+op.onDelete = removeListeners;
+updateListeners();
+
+function onMouseDown(e)
+{
+    if (e.which == 1)
+    {
+        mouseDownLeft.set(true);
+        triggerMouseDownLeft.trigger();
+    }
+    else if (e.which == 2)
+    {
+        mouseDownMiddle.set(true);
+        triggerMouseDownMiddle.trigger();
+    }
+    else if (e.which == 3)
+    {
+        mouseDownRight.set(true);
+        triggerMouseDownRight.trigger();
+    }
+}
+
+function onMouseUp(e)
+{
+    if (e.which == 1)
+    {
+        mouseDownLeft.set(false);
+        triggerMouseUpLeft.trigger();
+    }
+    else if (e.which == 2)
+    {
+        mouseDownMiddle.set(false);
+        triggerMouseUpMiddle.trigger();
+    }
+    else if (e.which == 3)
+    {
+        mouseDownRight.set(false);
+        triggerMouseUpRight.trigger();
+    }
+}
+
+function onClickRight(e)
+{
+    mouseClickRight.trigger();
+    e.preventDefault();
+}
+
+function onDoubleClick(e)
+{
+    mouseDoubleClick.trigger();
+}
+
+function onmouseclick(e)
+{
+    mouseClickLeft.trigger();
+}
+
+function ontouchstart(event)
+{
+    if (event.touches && event.touches.length > 0)
+    {
+        event.touches[0].which = 1;
+        onMouseDown(event.touches[0]);
+    }
+}
+
+function ontouchend(event)
+{
+    onMouseUp({ "which": 1 });
+}
+
+function removeListeners()
+{
+    if (!listenerElement) return;
+    listenerElement.removeEventListener("touchend", ontouchend);
+    listenerElement.removeEventListener("touchcancel", ontouchend);
+    listenerElement.removeEventListener("touchstart", ontouchstart);
+    listenerElement.removeEventListener("dblclick", onDoubleClick);
+    listenerElement.removeEventListener("click", onmouseclick);
+    listenerElement.removeEventListener("mousedown", onMouseDown);
+    listenerElement.removeEventListener("mouseup", onMouseUp);
+    listenerElement.removeEventListener("contextmenu", onClickRight);
+    listenerElement.removeEventListener("mouseleave", onMouseUp);
+    listenerElement = null;
+}
+
+function addListeners()
+{
+    if (listenerElement)removeListeners();
+
+    listenerElement = cgl.canvas;
+    if (area.get() == "Document") listenerElement = document.body;
+
+    listenerElement.addEventListener("touchend", ontouchend);
+    listenerElement.addEventListener("touchcancel", ontouchend);
+    listenerElement.addEventListener("touchstart", ontouchstart);
+    listenerElement.addEventListener("dblclick", onDoubleClick);
+    listenerElement.addEventListener("click", onmouseclick);
+    listenerElement.addEventListener("mousedown", onMouseDown);
+    listenerElement.addEventListener("mouseup", onMouseUp);
+    listenerElement.addEventListener("contextmenu", onClickRight);
+    listenerElement.addEventListener("mouseleave", onMouseUp);
+}
+
+op.onLoaded = updateListeners;
+
+active.onChange = updateListeners;
+
+function updateListeners()
+{
+    removeListeners();
+    if (active.get()) addListeners();
+}
+
+
+};
+
+Ops.Devices.Mouse.MouseButtons.prototype = new CABLES.Op();
+CABLES.OPS["c7e5e545-c8a1-4fef-85c2-45422b947f0d"]={f:Ops.Devices.Mouse.MouseButtons,objName:"Ops.Devices.Mouse.MouseButtons"};
+
+
+
+
+// **************************************************************
+// 
+// Ops.Array.ArrayIndexMinMax
+// 
+// **************************************************************
+
+Ops.Array.ArrayIndexMinMax = function()
+{
+CABLES.Op.apply(this,arguments);
+const op=this;
+const attachments={};
+const
+    inArr=op.inArray("Array"),
+    outMax=op.outNumber("Max"),
+    outIndexMax=op.outNumber("Index Max"),
+    outMin=op.outNumber("Min"),
+    outIndexMin=op.outNumber("Index Min");
+
+inArr.onChange=
+outMax.onChange=
+outIndexMax.onChange=
+outMin.onChange=
+outIndexMin.onChange=()=>
+{
+
+    const arr=inArr.get();
+
+    if(!arr)
+    {
+        outMax.set(0);
+        outMin.set(0);
+        return;
+    }
+
+    let min=Number.MAX_VALUE;
+    let max=-Number.MAX_VALUE;
+    let minIndex=-1;
+    let maxIndex=-1;
+
+    for(let i=0;i<arr.length;i++)
+    {
+
+        if(arr[i]<min)
+        {
+            minIndex=i;
+            min=arr[i];
+        }
+        if(arr[i]>max)
+        {
+            maxIndex=i;
+            max=arr[i];
+        }
+
+    }
+
+    outMax.set(max);
+    outIndexMax.set(maxIndex);
+    outMin.set(min);
+    outIndexMin.set(minIndex);
+
+
+};
+
+};
+
+Ops.Array.ArrayIndexMinMax.prototype = new CABLES.Op();
+CABLES.OPS["240172a6-7dde-4dcc-b862-bbe764aec3f3"]={f:Ops.Array.ArrayIndexMinMax,objName:"Ops.Array.ArrayIndexMinMax"};
+
+
+
+
+// **************************************************************
+// 
+// Ops.Math.MathExpression
+// 
+// **************************************************************
+
+Ops.Math.MathExpression = function()
+{
+CABLES.Op.apply(this,arguments);
+const op=this;
+const attachments={};
+const inA = op.inFloat("A", 0);
+const inB = op.inFloat("B", 1);
+const inC = op.inFloat("C", 2);
+const inD = op.inFloat("D", 3);
+op.setPortGroup("Parameters", [inA, inB, inC, inD]);
+const inExpression = op.inString("Expression", "a*(b+c+d)");
+op.setPortGroup("Expression", [inExpression]);
+const outResult = op.outNumber("Result");
+const outExpressionIsValid = op.outBool("Expression Valid");
+
+let currentFunction = inExpression.get();
+let functionValid = false;
+
+const createFunction = () =>
+{
+    try
+    {
+        currentFunction = new Function("m", "a", "b", "c", "d", `with(m) { return ${inExpression.get()} }`);
+        functionValid = true;
+        evaluateFunction();
+        outExpressionIsValid.set(functionValid);
+    }
+    catch (e)
+    {
+        functionValid = false;
+        outExpressionIsValid.set(functionValid);
+        if (e instanceof ReferenceError || e instanceof SyntaxError) return;
+    }
+};
+
+const evaluateFunction = () =>
+{
+    if (functionValid)
+    {
+        outResult.set(currentFunction(Math, inA.get(), inB.get(), inC.get(), inD.get()));
+        if (!inExpression.get()) outResult.set(0);
+    }
+
+    outExpressionIsValid.set(functionValid);
+};
+
+
+inA.onChange = inB.onChange = inC.onChange = inD.onChange = evaluateFunction;
+inExpression.onChange = createFunction;
+createFunction();
+
+
+};
+
+Ops.Math.MathExpression.prototype = new CABLES.Op();
+CABLES.OPS["d2343a1e-64ea-45b2-99ed-46e167bbdcd3"]={f:Ops.Math.MathExpression,objName:"Ops.Math.MathExpression"};
+
+
+
+
+// **************************************************************
+// 
+// Ops.Gl.Textures.CopyTexture_v2
+// 
+// **************************************************************
+
+Ops.Gl.Textures.CopyTexture_v2 = function()
+{
+CABLES.Op.apply(this,arguments);
+const op=this;
+const attachments={"copytexture_frag":"UNI float a;\nUNI sampler2D tex;\n\n#ifdef TEX_MASK\nUNI sampler2D texMask;\n#endif\n\nIN vec2 texCoord;\n\nvoid main()\n{\n    vec4 col=texture(tex,texCoord);\n\n    #ifdef TEX_MASK\n        col.a=texture(texMask,texCoord).r;\n    #endif\n\n\n    #ifdef GREY_R\n        col.rgb=vec3(col.r);\n    #endif\n\n    #ifdef GREY_G\n        col.rgb=vec3(col.g);\n    #endif\n\n    #ifdef GREY_B\n        col.rgb=vec3(col.b);\n    #endif\n\n    #ifdef GREY_A\n        col.rgb=vec3(col.a);\n    #endif\n\n    #ifdef GREY_LUMI\n        col.rgb=vec3( dot(vec3(0.2126,0.7152,0.0722), col.rgb) );\n    #endif\n\n\n    #ifdef INVERT_A\n        col.a=1.0-col.a;\n    #endif\n\n    #ifdef INVERT_R\n        col.r=1.0-col.r;\n    #endif\n\n    #ifdef INVERT_G\n        col.g=1.0-col.g;\n    #endif\n\n    #ifdef INVERT_B\n        col.b=1.0-col.b;\n    #endif\n\n    #ifdef ALPHA_1\n        col.a=1.0;\n    #endif\n\n\n\n\n    outColor= col;\n}",};
+const
+    render = op.inTriggerButton("render"),
+    inTexture = op.inTexture("Texture"),
+    inTextureMask = op.inTexture("Alpha Mask"),
+    useVPSize = op.inValueBool("use original size", true),
+    width = op.inValueInt("width", 640),
+    height = op.inValueInt("height", 360),
+    tfilter = op.inSwitch("filter", ["nearest", "linear", "mipmap"], "linear"),
+    twrap = op.inValueSelect("wrap", ["clamp to edge", "repeat", "mirrored repeat"], "clamp to edge"),
+    fpTexture = op.inValueBool("HDR"),
+    alphaMaskMethod = op.inSwitch("Alpha Mask Source", ["A", "1"], "A"),
+    greyscale = op.inSwitch("Convert Greyscale", ["Off", "R", "G", "B", "A", "Luminance"], "Off"),
+    invertR = op.inBool("Invert R", false),
+    invertG = op.inBool("Invert G", false),
+    invertB = op.inBool("Invert B", false),
+    invertA = op.inBool("Invert A", false),
+
+    trigger = op.outTrigger("trigger"),
+    texOut = op.outTexture("texture_out", null),
+    outRatio = op.outNumber("Aspect Ratio");
+
+alphaMaskMethod.setUiAttribs({ "hidePort": true });
+greyscale.setUiAttribs({ "hidePort": true });
+invertR.setUiAttribs({ "hidePort": true });
+invertG.setUiAttribs({ "hidePort": true });
+invertB.setUiAttribs({ "hidePort": true });
+
+let autoRefreshTimeout = null;
+const cgl = op.patch.cgl;
+let lastTex = null;
+let effect = null;
+let tex = null;
+let needsResUpdate = true;
+
+let w = 2, h = 2;
+const prevViewPort = [0, 0, 0, 0];
+let reInitEffect = true;
+
+op.toWorkPortsNeedToBeLinked(render, inTexture);
+op.setPortGroup("Size", [useVPSize, width, height]);
+
+const bgShader = new CGL.Shader(cgl, "copytexture");
+bgShader.setSource(bgShader.getDefaultVertexShader(), attachments.copytexture_frag);
+const textureUniform = new CGL.Uniform(bgShader, "t", "tex", 0);
+let textureMaskUniform = new CGL.Uniform(bgShader, "t", "texMask", 1);
+
+let selectedFilter = CGL.Texture.FILTER_LINEAR;
+let selectedWrap = CGL.Texture.WRAP_CLAMP_TO_EDGE;
+
+alphaMaskMethod.onChange =
+    greyscale.onChange =
+    invertR.onChange =
+    invertG.onChange =
+    invertB.onChange =
+    twrap.onChange =
+    tfilter.onChange =
+    fpTexture.onChange =
+    render.onLinkChanged =
+    inTexture.onLinkChanged =
+    inTexture.onChange =
+    inTextureMask.onChange = updateSoon;
+
+render.onTriggered = doRender;
+updateSizePorts();
+
+function initEffect()
+{
+    if (effect)effect.delete();
+    if (tex)
+    {
+        tex.delete();
+        tex = null;
+    }
+
+    effect = new CGL.TextureEffect(cgl, { "isFloatingPointTexture": fpTexture.get(), "clear": false });
+
+    if (!tex ||
+        tex.width != Math.floor(width.get()) ||
+        tex.height != Math.floor(height.get()) ||
+        tex.wrap != selectedWrap ||
+        tex.isFloatingPoint() != fpTexture.get()
+    )
+    {
+        if (tex) tex.delete();
+        tex = new CGL.Texture(cgl,
+            {
+                "name": "copytexture_" + op.id,
+                "isFloatingPointTexture": fpTexture.get(),
+                "filter": selectedFilter,
+                "wrap": selectedWrap,
+                "width": Math.floor(width.get()),
+                "height": Math.floor(height.get()),
+            });
+    }
+
+    effect.setSourceTexture(tex);
+    texOut.set(null);
+    reInitEffect = false;
+}
+
+function updateSoon()
+{
+    updateParams();
+    reInitEffect = true;
+
+    if (!render.isLinked() || !inTexture.isLinked()) texOut.set(CGL.Texture.getEmptyTexture(cgl));
+}
+
+function updateResolution()
+{
+    if (!inTexture.get() || inTexture.get() == CGL.Texture.getEmptyTexture(cgl)) return;
+    if (!effect)initEffect();
+
+    if (useVPSize.get())
+    {
+        w = inTexture.get().width;
+        h = inTexture.get().height;
+    }
+    else
+    {
+        w = Math.floor(width.get());
+        h = Math.floor(height.get());
+    }
+
+    if ((w != tex.width || h != tex.height) && (w !== 0 && h !== 0))
+    {
+        height.set(h);
+        width.set(w);
+        tex.filter = selectedFilter;
+        tex.setSize(w, h);
+        outRatio.set(w / h);
+        effect.setSourceTexture(tex);
+    }
+
+    if (texOut.get() && selectedFilter != CGL.Texture.FILTER_NEAREST)
+    {
+        if (!texOut.get().isPowerOfTwo()) op.setUiError("hintnpot", "texture dimensions not power of two! - texture filtering when scaling will not work on ios devices.", 0);
+        else op.setUiError("hintnpot", null, 0);
+    }
+    else op.setUiError("hintnpot", null, 0);
+
+    needsResUpdate = false;
+}
+
+function updateSizePorts()
+{
+    width.setUiAttribs({ "greyout": useVPSize.get() });
+    height.setUiAttribs({ "greyout": useVPSize.get() });
+}
+
+function updateResolutionLater()
+{
+    needsResUpdate = true;
+    updateSoon();
+}
+
+useVPSize.onChange = function ()
+{
+    updateSizePorts();
+    if (useVPSize.get())
+    {
+        width.onChange = null;
+        height.onChange = null;
+    }
+    else
+    {
+        width.onChange = updateResolutionLater;
+        height.onChange = updateResolutionLater;
+    }
+    updateResolution();
+};
+
+function doRender()
+{
+    // op.patch.removeOnAnimCallback(doRender);
+    // if (!inTexture.get())
+
+    if (!inTexture.get() || inTexture.get() == CGL.Texture.getEmptyTexture(cgl)) texOut.set(CGL.Texture.getEmptyTexture(cgl));
+
+    if (!inTexture.get() || inTexture.get() == CGL.Texture.getEmptyTexture(cgl))
+    {
+        lastTex = null;// CGL.Texture.getEmptyTexture(cgl);
+        trigger.trigger();
+        return;
+    }
+    else
+    if (!effect || reInitEffect || lastTex != inTexture.get())
+    {
+        initEffect();
+    }
+    const vp = cgl.getViewPort();
+    prevViewPort[0] = vp[0];
+    prevViewPort[1] = vp[1];
+    prevViewPort[2] = vp[2];
+    prevViewPort[3] = vp[3];
+
+    updateResolution();
+
+    lastTex = inTexture.get();
+    const oldEffect = cgl.currentTextureEffect;
+    cgl.currentTextureEffect = effect;
+    effect.setSourceTexture(tex);
+
+    effect.startEffect();
+
+    // render background color...
+    cgl.pushShader(bgShader);
+    cgl.currentTextureEffect.bind();
+    cgl.setTexture(0, inTexture.get().tex);
+    if (inTextureMask.get())cgl.setTexture(1, inTextureMask.get().tex);
+
+    cgl.pushBlend(false);
+
+    cgl.currentTextureEffect.finish();
+    cgl.popShader();
+
+    cgl.popBlend();
+
+    texOut.set(effect.getCurrentSourceTexture());
+
+    effect.endEffect();
+
+    cgl.setViewPort(prevViewPort[0], prevViewPort[1], prevViewPort[2], prevViewPort[3]);
+
+    cgl.currentTextureEffect = oldEffect;
+
+    cgl.setTexture(0, CGL.Texture.getEmptyTexture(cgl).tex);
+
+    trigger.trigger();
+}
+
+function updateParams()
+{
+    bgShader.toggleDefine("TEX_MASK", inTextureMask.get());
+
+    bgShader.toggleDefine("GREY_R", greyscale.get() === "R");
+    bgShader.toggleDefine("GREY_G", greyscale.get() === "G");
+    bgShader.toggleDefine("GREY_B", greyscale.get() === "B");
+    bgShader.toggleDefine("GREY_A", greyscale.get() === "A");
+    bgShader.toggleDefine("GREY_LUMI", greyscale.get() === "Luminance");
+
+    bgShader.toggleDefine("ALPHA_1", alphaMaskMethod.get() === "1");
+    bgShader.toggleDefine("ALPHA_A", alphaMaskMethod.get() === "A");
+
+    bgShader.toggleDefine("INVERT_R", invertR.get());
+    bgShader.toggleDefine("INVERT_G", invertG.get());
+    bgShader.toggleDefine("INVERT_B", invertB.get());
+    bgShader.toggleDefine("INVERT_A", invertA.get());
+
+    if (twrap.get() == "repeat") selectedWrap = CGL.Texture.WRAP_REPEAT;
+    else if (twrap.get() == "mirrored repeat") selectedWrap = CGL.Texture.WRAP_MIRRORED_REPEAT;
+    else if (twrap.get() == "clamp to edge") selectedWrap = CGL.Texture.WRAP_CLAMP_TO_EDGE;
+
+    if (tfilter.get() == "nearest") selectedFilter = CGL.Texture.FILTER_NEAREST;
+    else if (tfilter.get() == "linear") selectedFilter = CGL.Texture.FILTER_LINEAR;
+    else if (tfilter.get() == "mipmap") selectedFilter = CGL.Texture.FILTER_MIPMAP;
+
+    if (bgShader.needsRecompile())
+    {
+        reInitEffect = true;
+    }
+    if (tex && (
+        tex.width != Math.floor(width.get()) ||
+        tex.height != Math.floor(height.get()) ||
+        tex.wrap != selectedWrap ||
+        tex.isFloatingPoint() != fpTexture.get()
+    ))
+    {
+        reInitEffect = true;
+    }
+}
+
+
+};
+
+Ops.Gl.Textures.CopyTexture_v2.prototype = new CABLES.Op();
+CABLES.OPS["7a86fd19-571a-48ab-9e37-dd84e9f428e7"]={f:Ops.Gl.Textures.CopyTexture_v2,objName:"Ops.Gl.Textures.CopyTexture_v2"};
+
+
+
+
+// **************************************************************
+// 
+// Ops.Cables.CallBack_v2
+// 
+// **************************************************************
+
+Ops.Cables.CallBack_v2 = function()
+{
+CABLES.Op.apply(this,arguments);
+const op=this;
+const attachments={};
+const exe = op.inTriggerButton("exe");
+const callbackname = op.inString("Callback Name", "myFunction");
+const val0 = op.inString("Parameter 1", "");
+const val1 = op.inString("Parameter 2", "");
+const val2 = op.inString("Parameter 3", "");
+
+let values = [0, 0, 0];
+
+val0.onChange = function () { values[0] = val0.get(); };
+val1.onChange = function () { values[1] = val1.get(); };
+val2.onChange = function () { values[2] = val2.get(); };
+
+exe.onTriggered = function ()
+{
+    if (op.patch.config.hasOwnProperty(callbackname.get()))
+    {
+        op.patch.config[callbackname.get()](values);
+    }
+    else
+    {
+        op.log("callback ", callbackname.get(), " not found! Parameters: ", values);
+    }
+};
+
+
+};
+
+Ops.Cables.CallBack_v2.prototype = new CABLES.Op();
+CABLES.OPS["cfc87cb1-a74b-482f-9fad-e1777cb7ffd4"]={f:Ops.Cables.CallBack_v2,objName:"Ops.Cables.CallBack_v2"};
+
+
+
+
+// **************************************************************
+// 
+// Ops.Math.Ceil
+// 
+// **************************************************************
+
+Ops.Math.Ceil = function()
+{
+CABLES.Op.apply(this,arguments);
+const op=this;
+const attachments={};
+const number1 = op.inValue("Number");
+const result = op.outNumber("Result");
+
+function exec()
+{
+    result.set(Math.ceil(number1.get()));
+}
+
+number1.onChange = exec;
+
+
+};
+
+Ops.Math.Ceil.prototype = new CABLES.Op();
+CABLES.OPS["15ba7aa9-b1c3-4b20-b6bf-b52a3ba8c8c5"]={f:Ops.Math.Ceil,objName:"Ops.Math.Ceil"};
+
+
+
+
+// **************************************************************
+// 
+// Ops.Array.ArrayFromNumbers
+// 
+// **************************************************************
+
+Ops.Array.ArrayFromNumbers = function()
+{
+CABLES.Op.apply(this,arguments);
+const op=this;
+const attachments={};
+const
+    inUpdate = op.inTrigger("Update"),
+    inLimit = op.inInt("Limit", 30),
+    inSlider = op.inBool("Slider", false),
+    next = op.outTrigger("Next"),
+    outArr = op.outArray("Array");
+
+const inPorts = [];
+for (let i = 0; i < 30; i++)
+{
+    const inp = op.inFloat("Index " + i, 0);
+    inPorts.push(inp);
+}
+
+const arr = [];
+let to = null;
+
+inUpdate.onTriggered = update;
+
+inSlider.onChange = () =>
+{
+    const l = inLimit.get();
+
+    for (let i = 0; i < inPorts.length; i++)
+        if (inSlider.get()) inPorts[i].setUiAttribs({ "display": "range" });
+        else inPorts[i].setUiAttribs({ "display": null });
+
+    op.refreshParams();
+};
+
+inLimit.onChange = () =>
+{
+    clearTimeout(to);
+
+    to = setTimeout(() =>
+    {
+        const l = inLimit.get();
+        for (let i = 0; i < inPorts.length; i++)
+        {
+            inPorts[i].setUiAttribs({ "greyout": i >= l });
+        }
+    }, 300);
+};
+
+function update()
+{
+    const l = Math.max(0, Math.ceil(Math.min(inLimit.get(), inPorts.length)));
+    arr.length = l;
+    for (let i = 0; i < l; i++)
+    {
+        arr[i] = inPorts[i].get();
+    }
+
+    outArr.set(null);
+    outArr.set(arr);
+    next.trigger();
+}
+
+
+};
+
+Ops.Array.ArrayFromNumbers.prototype = new CABLES.Op();
+CABLES.OPS["fb698158-3cf8-49d6-805e-6ea38fdab8c1"]={f:Ops.Array.ArrayFromNumbers,objName:"Ops.Array.ArrayFromNumbers"};
+
+
+
+
+// **************************************************************
+// 
+// Ops.Array.ArrayGetString
+// 
+// **************************************************************
+
+Ops.Array.ArrayGetString = function()
+{
+CABLES.Op.apply(this,arguments);
+const op=this;
+const attachments={};
+const
+    array = op.inArray("array"),
+    index = op.inValueInt("index"),
+    result = op.outString("result");
+
+array.ignoreValueSerialize = true;
+
+index.onChange = update;
+
+array.onChange = function ()
+{
+    update();
+};
+
+function update()
+{
+    const arr = array.get();
+    if (arr) result.set(arr[index.get()]);
+}
+
+
+};
+
+Ops.Array.ArrayGetString.prototype = new CABLES.Op();
+CABLES.OPS["be8f16c0-0c8a-48a2-a92b-45dbf88c76c1"]={f:Ops.Array.ArrayGetString,objName:"Ops.Array.ArrayGetString"};
+
+
+
+
+// **************************************************************
+// 
+// Ops.Gl.TriggerOnCanvasResize
+// 
+// **************************************************************
+
+Ops.Gl.TriggerOnCanvasResize = function()
+{
+CABLES.Op.apply(this,arguments);
+const op=this;
+const attachments={};
+const onResize = op.outTrigger("Resized");
+
+let listener = op.patch.cgl.on("resize", resize);
+
+function resize()
+{
+    onResize.trigger();
+}
+
+op.onDelete = () =>
+{
+    op.patch.cgl.off(listener);
+};
+
+
+};
+
+Ops.Gl.TriggerOnCanvasResize.prototype = new CABLES.Op();
+CABLES.OPS["856de8cf-b8d1-4668-b8ff-80c68bc73ddd"]={f:Ops.Gl.TriggerOnCanvasResize,objName:"Ops.Gl.TriggerOnCanvasResize"};
+
+
+
+
+// **************************************************************
+// 
+// Ops.Cables.LoadingStatusTask
+// 
+// **************************************************************
+
+Ops.Cables.LoadingStatusTask = function()
+{
+CABLES.Op.apply(this,arguments);
+const op=this;
+const attachments={};
+// vars
+let stack = [];
+let uuid = CABLES.uuid();
+
+// inputs
+let startPort = op.inTriggerButton("Start Task");
+let stopPort = op.inTriggerButton("End Task");
+
+// listeners
+startPort.onTriggered = startTask;
+stopPort.onTriggered = stopTask;
+
+function startTask()
+{
+    let id = uuid + " (" + (stack.length + 1) + ")";
+    let loadingId = op.patch.loading.start("task", id);
+    if (CABLES.UI)
+    {
+        gui.jobs().start({ "id": loadingId, "title": "loading task " + id });
+    }
+
+    stack.push(loadingId);
+}
+
+function stopTask()
+{
+    let loadingId = stack.pop();
+    op.patch.loading.finished(loadingId);
+    if (CABLES.UI)
+    {
+        gui.jobs().finish(loadingId);
+    }
+}
+
+
+};
+
+Ops.Cables.LoadingStatusTask.prototype = new CABLES.Op();
+CABLES.OPS["38d0f6ba-a4d8-4093-9cab-17e1b5dd52ae"]={f:Ops.Cables.LoadingStatusTask,objName:"Ops.Cables.LoadingStatusTask"};
+
+
+
+
+// **************************************************************
+// 
+// Ops.Cables.LoadingStatus_v2
+// 
+// **************************************************************
+
+Ops.Cables.LoadingStatus_v2 = function()
+{
+CABLES.Op.apply(this,arguments);
+const op=this;
+const attachments={};
+const
+    exe = op.inTrigger("exe"),
+    preRenderOps = op.inValueBool("PreRender Ops"),
+    startTimeLine = op.inBool("Play Timeline", true),
+    next = op.outTrigger("Next"),
+    outInitialFinished = op.outBoolNum("Finished Initial Loading", false),
+    outLoading = op.outBoolNum("Loading"),
+    outProgress = op.outNumber("Progress"),
+    outList = op.outArray("Jobs"),
+    loadingFinished = op.outTrigger("Trigger Loading Finished ");
+
+const cgl = op.patch.cgl;
+const patch = op.patch;
+
+let finishedOnce = false;
+const preRenderTimes = [];
+let firstTime = true;
+
+document.body.classList.add("cables-loading");
+
+let loadingId = cgl.patch.loading.start("loadingStatusInit", "loadingStatusInit", op);
+
+exe.onTriggered = () =>
+{
+    const jobs = op.patch.loading.getListJobs();
+    outProgress.set(patch.loading.getProgress());
+
+    let hasFinished = jobs.length === 0;
+    const notFinished = !hasFinished;
+    // outLoading.set(!hasFinished);
+
+    if (notFinished)
+    {
+        outList.set(op.patch.loading.getListJobs());
+    }
+
+    if (notFinished)
+    {
+        if (firstTime)
+        {
+            if (preRenderOps.get()) op.patch.preRenderOps();
+
+            op.patch.timer.setTime(0);
+            if (startTimeLine.get())
+            {
+                op.patch.timer.play();
+            }
+            else
+            {
+                op.patch.timer.pause();
+            }
+        }
+        firstTime = false;
+
+        document.body.classList.remove("cables-loading");
+        document.body.classList.add("cables-loaded");
+    }
+    else
+    {
+        finishedOnce = true;
+        outList.set(op.patch.loading.getListJobs());
+        if (patch.loading.getProgress() < 1.0)
+        {
+            op.patch.timer.setTime(0);
+            op.patch.timer.pause();
+        }
+    }
+
+    outInitialFinished.set(finishedOnce);
+
+    if (outLoading.get() && hasFinished) loadingFinished.trigger();
+
+    outLoading.set(notFinished);
+    op.setUiAttribs({ "loading": notFinished });
+
+    next.trigger();
+
+    if (loadingId)
+    {
+        cgl.patch.loading.finished(loadingId);
+        loadingId = null;
+    }
+};
+
+
+};
+
+Ops.Cables.LoadingStatus_v2.prototype = new CABLES.Op();
+CABLES.OPS["e62f7f4c-7436-437e-8451-6bc3c28545f7"]={f:Ops.Cables.LoadingStatus_v2,objName:"Ops.Cables.LoadingStatus_v2"};
+
+
+
+
+// **************************************************************
+// 
+// Ops.Html.LoadingIndicator
+// 
+// **************************************************************
+
+Ops.Html.LoadingIndicator = function()
+{
+CABLES.Op.apply(this,arguments);
+const op=this;
+const attachments={"css_ellipsis_css":".lds-ellipsis {\n\n}\n.lds-ellipsis div {\n  position: absolute;\n  /*top: 33px;*/\n  margin-top:-12px;\n  margin-left:-13px;\n  width: 13px;\n  height: 13px;\n  border-radius: 50%;\n  background: #fff;\n  animation-timing-function: cubic-bezier(0, 1, 1, 0);\n}\n.lds-ellipsis div:nth-child(1) {\n  left: 8px;\n  animation: lds-ellipsis1 0.6s infinite;\n}\n.lds-ellipsis div:nth-child(2) {\n  left: 8px;\n  animation: lds-ellipsis2 0.6s infinite;\n}\n.lds-ellipsis div:nth-child(3) {\n  left: 32px;\n  animation: lds-ellipsis2 0.6s infinite;\n}\n.lds-ellipsis div:nth-child(4) {\n  left: 56px;\n  animation: lds-ellipsis3 0.6s infinite;\n}\n@keyframes lds-ellipsis1 {\n  0% {\n    transform: scale(0);\n  }\n  100% {\n    transform: scale(1);\n  }\n}\n@keyframes lds-ellipsis3 {\n  0% {\n    transform: scale(1);\n  }\n  100% {\n    transform: scale(0);\n  }\n}\n@keyframes lds-ellipsis2 {\n  0% {\n    transform: translate(0, 0);\n  }\n  100% {\n    transform: translate(24px, 0);\n  }\n}\n","css_ring_css":".lds-ring {\n}\n.lds-ring div {\n  box-sizing: border-box;\n  display: block;\n  position: absolute;\n  width: 100%;\n  height: 100%;\n  margin: 0;\n  border: 3px solid #fff;\n  border-radius: 50%;\n  animation: lds-ring 1.2s cubic-bezier(0.5, 0, 0.5, 1) infinite;\n  border-color: #fff transparent transparent transparent;\n}\n.lds-ring div:nth-child(1) {\n  animation-delay: -0.45s;\n}\n.lds-ring div:nth-child(2) {\n  animation-delay: -0.3s;\n}\n.lds-ring div:nth-child(3) {\n  animation-delay: -0.15s;\n}\n@keyframes lds-ring {\n  0% {\n    transform: rotate(0deg);\n  }\n  100% {\n    transform: rotate(360deg);\n  }\n}\n","css_spinner_css":"._cables_spinner {\n  /*width: 40px;*/\n  /*height: 40px;*/\n  /*margin: 100px auto;*/\n  background-color: #777;\n\n  border-radius: 100%;\n  -webkit-animation: sk-scaleout 1.0s infinite ease-in-out;\n  animation: sk-scaleout 1.0s infinite ease-in-out;\n}\n\n@-webkit-keyframes sk-scaleout {\n  0% { -webkit-transform: scale(0) }\n  100% {\n    -webkit-transform: scale(1.0);\n    opacity: 0;\n  }\n}\n\n@keyframes sk-scaleout {\n  0% {\n    -webkit-transform: scale(0);\n    transform: scale(0);\n  } 100% {\n    -webkit-transform: scale(1.0);\n    transform: scale(1.0);\n    opacity: 0;\n  }\n}",};
+const
+    inVisible = op.inBool("Visible", true),
+    inStyle = op.inSwitch("Style", ["Spinner", "Ring", "Ellipsis"], "Ring");
+
+const div = document.createElement("div");
+div.dataset.op = op.id;
+const canvas = op.patch.cgl.canvas.parentElement;
+
+inStyle.onChange = updateStyle;
+
+div.appendChild(document.createElement("div"));
+div.appendChild(document.createElement("div"));
+div.appendChild(document.createElement("div"));
+
+const size = 50;
+
+div.style.width = size + "px";
+div.style.height = size + "px";
+div.style.top = "50%";
+div.style.left = "50%";
+// div.style.border="1px solid red";
+
+div.style["margin-left"] = "-" + size / 2 + "px";
+div.style["margin-top"] = "-" + size / 2 + "px";
+
+div.style.position = "absolute";
+div.style["z-index"] = "9999999";
+
+inVisible.onChange = updateVisible;
+
+let eleId = "css_loadingicon_" + CABLES.uuid();
+
+const styleEle = document.createElement("style");
+styleEle.type = "text/css";
+styleEle.id = eleId;
+
+let head = document.getElementsByTagName("body")[0];
+head.appendChild(styleEle);
+
+op.onDelete = () =>
+{
+    remove();
+    if (styleEle)styleEle.remove();
+};
+
+updateStyle();
+
+function updateStyle()
+{
+    const st = inStyle.get();
+    if (st == "Spinner")
+    {
+        div.classList.add("_cables_spinner");
+        styleEle.textContent = attachments.css_spinner_css;
+    }
+    else div.classList.remove("_cables_spinner");
+
+    if (st == "Ring")
+    {
+        div.classList.add("lds-ring");
+        styleEle.textContent = attachments.css_ring_css;
+    }
+    else div.classList.remove("lds-ring");
+
+    if (st == "Ellipsis")
+    {
+        div.classList.add("lds-ellipsis");
+        styleEle.textContent = attachments.css_ellipsis_css;
+    }
+    else div.classList.remove("lds-ellipsis");
+}
+
+function remove()
+{
+    div.remove();
+    // if (styleEle)styleEle.remove();
+}
+
+function updateVisible()
+{
+    remove();
+    if (inVisible.get()) canvas.appendChild(div);
+}
+
+
+};
+
+Ops.Html.LoadingIndicator.prototype = new CABLES.Op();
+CABLES.OPS["e102834c-6dcf-459c-9e22-44ebccfc0d3b"]={f:Ops.Html.LoadingIndicator,objName:"Ops.Html.LoadingIndicator"};
+
+
+
+
+// **************************************************************
+// 
+// Ops.Gl.CanvasInfo
+// 
+// **************************************************************
+
+Ops.Gl.CanvasInfo = function()
+{
+CABLES.Op.apply(this,arguments);
+const op=this;
+const attachments={};
+const
+    width = op.outNumber("width"),
+    height = op.outNumber("height"),
+    inUnit = op.inSwitch("Pixel Unit", ["Display", "CSS"], "Display"),
+    pixelRatio = op.outNumber("Pixel Ratio"),
+    aspect = op.outNumber("Aspect Ratio"),
+    landscape = op.outBool("Landscape"),
+    outCanvasEle = op.outObject("Canvas", "element"),
+    outCanvasParentEle = op.outObject("Canvas Parent", "element");
+
+let cgl = op.patch.cgl;
+outCanvasEle.set(op.patch.cgl.canvas);
+outCanvasParentEle.set(op.patch.cgl.canvas.parentElement);
+
+cgl.on("resize", update);
+
+inUnit.onChange = update;
+update();
+
+function update()
+{
+    let div = 1;
+    if (inUnit.get() == "CSS")div = op.patch.cgl.pixelDensity;
+    height.set(cgl.canvasHeight / div);
+    width.set(cgl.canvasWidth / div);
+
+    pixelRatio.set(op.patch.cgl.pixelDensity); // window.devicePixelRatio
+
+    aspect.set(cgl.canvasWidth / cgl.canvasHeight);
+    landscape.set(cgl.canvasWidth > cgl.canvasHeight ? 1 : 0);
+}
+
+
+};
+
+Ops.Gl.CanvasInfo.prototype = new CABLES.Op();
+CABLES.OPS["94e499e5-b4ee-4861-ab48-6ab5098b2cc3"]={f:Ops.Gl.CanvasInfo,objName:"Ops.Gl.CanvasInfo"};
+
+
+
+
+// **************************************************************
+// 
+// Ops.Html.ElementCssTransform
+// 
+// **************************************************************
+
+Ops.Html.ElementCssTransform = function()
+{
+CABLES.Op.apply(this,arguments);
+const op=this;
+const attachments={};
+const
+    inEle = op.inObject("Element", null, "element"),
+    inDoTranslate = op.inBool("Translate Active", true),
+    inTransX = op.inFloat("Translate X", 0),
+    inTransY = op.inFloat("Translate Y", 0),
+    inTransUnit = op.inSwitch("Unit", ["px", "%"], "px"),
+
+    inDoScale = op.inBool("Scale Active", true),
+    inScale = op.inFloat("Scale", 1),
+
+    inDoRot = op.inBool("Rotate Active", true),
+    inRot = op.inFloat("Rot Z", 0),
+
+    inDoOrigin = op.inBool("Set Origin", true),
+    inOriginX = op.inSwitch("Origin X", ["left", "center", "right"], "center"),
+    inOriginY = op.inSwitch("Origin Y", ["top", "center", "bottom"], "center");
+
+op.setPortGroup("Element", [inEle]);
+op.setPortGroup("Translation", [inDoTranslate, inTransY, inTransX, inTransUnit]);
+op.setPortGroup("Scaling", [inScale, inDoScale]);
+op.setPortGroup("Rotation", [inDoRot, inRot]);
+op.setPortGroup("Origin", [inDoOrigin, inOriginX, inOriginY]);
+
+inTransUnit.onChange =
+    inDoScale.onChange =
+    inDoOrigin.onChange =
+    inOriginX.onChange =
+    inOriginY.onChange =
+    inDoRot.onChange =
+    inDoTranslate.onChange =
+    inDoRot.onChange =
+    inTransX.onChange =
+    inTransY.onChange =
+    inScale.onChange =
+    inRot.onChange = update;
+
+let ele = null;
+
+inEle.onChange = inEle.onLinkChanged = function ()
+{
+    if (ele && ele.style)
+    {
+        ele.style.transform = "initial";
+    }
+    update();
+};
+
+function update()
+{
+    ele = inEle.get();
+    if (ele && ele.style)
+    {
+        let str = "";
+
+        if (inDoTranslate.get())
+            if (inTransY.get() || inTransX.get())
+                str += "translate(" + inTransX.get() + inTransUnit.get() + " , " + inTransY.get() + inTransUnit.get() + ") ";
+
+        if (inDoScale.get())
+            if (inScale.get() != 1.0)
+                str += "scale(" + inScale.get() + ") ";
+
+        if (inDoRot.get())
+            if (inRot.get() != 0.0)
+                str += "rotateZ(" + inRot.get() + "deg) ";
+
+        try
+        {
+            ele.style.transform = str;
+
+            if (inDoOrigin.get())
+                ele.style["transform-origin"] = inOriginY.get() + " " + inOriginX.get();
+            else
+                ele.style["transform-origin"] = "initial";
+        }
+        catch (e)
+        {
+            op.logError(e);
+        }
+    }
+    else
+    {
+        setTimeout(update, 50);
+    }
+
+    // outEle.set(inEle.get());
+}
+
+
+};
+
+Ops.Html.ElementCssTransform.prototype = new CABLES.Op();
+CABLES.OPS["777d00c6-5605-43c5-9b6a-b20d465bd3ba"]={f:Ops.Html.ElementCssTransform,objName:"Ops.Html.ElementCssTransform"};
+
+
+
+
+// **************************************************************
+// 
+// Ops.Boolean.Or
+// 
+// **************************************************************
+
+Ops.Boolean.Or = function()
+{
+CABLES.Op.apply(this,arguments);
+const op=this;
+const attachments={};
+const
+    bool0 = op.inValueBool("bool 1"),
+    bool1 = op.inValueBool("bool 2"),
+    bool2 = op.inValueBool("bool 3"),
+    bool3 = op.inValueBool("bool 4"),
+    bool4 = op.inValueBool("bool 5"),
+    bool5 = op.inValueBool("bool 6"),
+    bool6 = op.inValueBool("bool 7"),
+    bool7 = op.inValueBool("bool 8"),
+    bool8 = op.inValueBool("bool 9"),
+    bool9 = op.inValueBool("bool 10"),
+    result = op.outBoolNum("result");
+
+bool0.onChange =
+    bool1.onChange =
+    bool2.onChange =
+    bool3.onChange =
+    bool4.onChange =
+    bool5.onChange =
+    bool6.onChange =
+    bool7.onChange =
+    bool8.onChange =
+    bool9.onChange = exec;
+
+function exec()
+{
+    result.set(bool0.get() || bool1.get() || bool2.get() || bool3.get() || bool4.get() || bool5.get() || bool6.get() || bool7.get() || bool8.get() || bool9.get());
+}
+
+
+};
+
+Ops.Boolean.Or.prototype = new CABLES.Op();
+CABLES.OPS["b3b36238-4592-4e11-afe3-8361c4fd6be5"]={f:Ops.Boolean.Or,objName:"Ops.Boolean.Or"};
+
+
+
+
+// **************************************************************
+// 
+// Ops.TimeLine.TimeLineTogglePlay
+// 
+// **************************************************************
+
+Ops.TimeLine.TimeLineTogglePlay = function()
+{
+CABLES.Op.apply(this,arguments);
+const op=this;
+const attachments={};
+const play=op.inBool("Play",false);
+
+play.onChange=function()
+{
+    if(play.get()) op.patch.timer.play();
+    else op.patch.timer.pause();
+}
+
+
+};
+
+Ops.TimeLine.TimeLineTogglePlay.prototype = new CABLES.Op();
+CABLES.OPS["930c6f38-9271-4021-a58b-14dcfc5763b2"]={f:Ops.TimeLine.TimeLineTogglePlay,objName:"Ops.TimeLine.TimeLineTogglePlay"};
+
+
+
+
+// **************************************************************
+// 
+// Ops.Html.CSSFilter
+// 
+// **************************************************************
+
+Ops.Html.CSSFilter = function()
+{
+CABLES.Op.apply(this,arguments);
+const op=this;
+const attachments={};
+const inEle = op.inObject("Element");
+const inMethod = op.inValueSelect("method", ["-", "blur", "brightness", "contrast", "grayscale", "hue-rotate", "invert", "opacity", "saturate", "sepia"]);
+const inVal = op.inValue("Value");
+
+let suffix = "";
+let prefix = "";
+
+inVal.onChange = setValue;
+inEle.onChange = setValue;
+
+let oldEle = null;
+
+function getCSSFilterString()
+{
+    return inMethod.get() + "(" + inVal.get() + suffix + ")";
+}
+
+inEle.onLinkChanged = function ()
+{
+    // remove style when deleting op
+    if (inEle.isLinked()) return;
+
+    const ele = oldEle;// inEle.get();
+
+    if (ele && ele.style)
+    {
+        let filter = ele.style.filter;
+        var str = "";
+
+        if (filter && filter.length > 0)
+        {
+            var str = "";
+            let parts = filter.split(" ");
+            for (let i = 0; i < parts.length; i++)
+            {
+                if (parts[i].indexOf(inMethod.get()) == 0)
+                    parts[i] = "";
+            }
+
+            str = parts.join(" ");
+        }
+        ele.style.filter = str;
+    }
+};
+
+function setValue()
+{
+    const ele = inEle.get();
+    let str = "";
+
+    if (ele && ele.style)
+    {
+        if (ele != oldEle) oldEle = ele;
+        let foundMyFilter = false;
+        let filter = ele.style.filter;
+
+        if (filter && filter.length > 0)
+        {
+            let parts = filter.split(" ");
+            for (let i = 0; i < parts.length; i++)
+            {
+                if (parts[i].indexOf(inMethod.get()) == 0)
+                {
+                    foundMyFilter = true;
+                    parts[i] = getCSSFilterString();
+                }
+            }
+
+            str = parts.join(" ");
+        }
+
+        if (!foundMyFilter)
+            str += " " + getCSSFilterString();
+
+        ele.style.filter = str;
+    }
+}
+
+inMethod.onChange = function ()
+{
+    let m = inMethod.get();
+
+    prefix = inMethod.get() + ":";
+
+    if (m == "blur") suffix = "px";
+    if (m == "brightness") suffix = "";
+    if (m == "contrast") suffix = "%";
+    if (m == "grayscale") suffix = "%";
+    if (m == "hue-rotate") suffix = "deg";
+    if (m == "invert") suffix = "%";
+    if (m == "opacity") suffix = "%";
+    if (m == "saturate") suffix = "";
+    if (m == "sepia") suffix = "%";
+    setValue();
+};
+
+
+};
+
+Ops.Html.CSSFilter.prototype = new CABLES.Op();
+CABLES.OPS["33befabf-7eef-45f6-869f-30e0e4f44739"]={f:Ops.Html.CSSFilter,objName:"Ops.Html.CSSFilter"};
+
+
+
+
+// **************************************************************
+// 
+// Ops.Website.UrlQueryParams_v2
+// 
+// **************************************************************
+
+Ops.Website.UrlQueryParams_v2 = function()
+{
+CABLES.Op.apply(this,arguments);
+const op=this;
+const attachments={};
+const
+    paramName = op.inString("parameter"),
+    def = op.inString("Default"),
+    result = op.outString("result");
+
+def.onChange = update;
+paramName.onChange = updateParam;
+
+const query = {};
+const a = window.location.search.substr(1).split("&");
+
+update();
+
+for (let i = 0; i < a.length; i++)
+{
+    const b = a[i].split("=");
+    query[decodeURIComponent(b[0])] = decodeURIComponent(b[1] || "");
+}
+
+function updateParam()
+{
+    op.setUiAttrib({ "extendTitle": paramName.get() });
+    update();
+}
+
+function update()
+{
+    if (!query.hasOwnProperty(paramName.get()))
+    {
+        const value = def.get() || null;
+        result.set(value);
+    }
+    else
+    {
+        let v = query[paramName.get()];
+        if (v === "true")v = true;
+        else if (v === "false")v = false;
+
+        result.set(v);
+    }
+}
+
+
+};
+
+Ops.Website.UrlQueryParams_v2.prototype = new CABLES.Op();
+CABLES.OPS["2e1b645c-c463-465d-abec-bf06ee4b970c"]={f:Ops.Website.UrlQueryParams_v2,objName:"Ops.Website.UrlQueryParams_v2"};
+
+
+
+
+// **************************************************************
+// 
+// Ops.Html.ElementSize
+// 
+// **************************************************************
+
+Ops.Html.ElementSize = function()
+{
+CABLES.Op.apply(this,arguments);
+const op=this;
+const attachments={};
+const
+    inExe=op.inTrigger("Update"),
+    inMode=op.inSwitch("Position",['Relative','Absolute'],'Relative'),
+    inEle=op.inObject("Element"),
+    outX=op.outNumber("x"),
+    outY=op.outNumber("y"),
+    outWidth=op.outNumber("Width"),
+    outHeight=op.outNumber("Height");
+
+inMode.onChange=updateMode;
+updateMode();
+
+function updateMode()
+{
+    if(inMode.get()=="Relative")
+    {
+        inEle.onChange=updateRel;
+        inExe.onTriggered=updateRel;
+    }
+    else
+    {
+        inEle.onChange=updateAbs;
+        inExe.onTriggered=updateAbs;
+    }
+}
+
+function updateAbs()
+{
+    const ele=inEle.get();
+    if(!ele)return;
+
+    const r=ele.getBoundingClientRect();
+
+    outX.set(r.x);
+    outY.set(r.y);
+    outWidth.set(r.width);
+    outHeight.set(r.height);
+}
+
+function updateRel()
+{
+    const ele=inEle.get();
+    if(!ele)return;
+
+    const rcanv=op.patch.cgl.canvas.getBoundingClientRect();
+    const r=ele.getBoundingClientRect();
+    outX.set(r.x-rcanv.x);
+    outY.set(r.y-rcanv.y);
+    outWidth.set(r.width);
+    outHeight.set(r.height);
+}
+
+};
+
+Ops.Html.ElementSize.prototype = new CABLES.Op();
+CABLES.OPS["fb23c251-a43e-4677-9d03-ccd512fee82e"]={f:Ops.Html.ElementSize,objName:"Ops.Html.ElementSize"};
+
+
+
+
+// **************************************************************
+// 
+// Ops.Value.SwitchNumberOnTrigger
+// 
+// **************************************************************
+
+Ops.Value.SwitchNumberOnTrigger = function()
+{
+CABLES.Op.apply(this,arguments);
+const op=this;
+const attachments={};
+const
+    currentVal = op.outNumber("Value"),
+    oldVal = op.outNumber("Last Value"),
+    triggered = op.outTrigger("Triggered");
+
+let triggers = [];
+let inVals = [];
+let inExes = [];
+
+function onTrigger()
+{
+    oldVal.set(currentVal.get());
+    currentVal.set(inVals[this.slot].get());
+    triggered.trigger();
+}
+
+let num = 8;
+for (let i = 0; i < num; i++)
+{
+    let newExe = op.addInPort(new CABLES.Port(op, "Trigger " + i, CABLES.OP_PORT_TYPE_FUNCTION));
+    newExe.slot = i;
+    newExe.onTriggered = onTrigger.bind(newExe);
+    let newVal = op.addInPort(new CABLES.Port(op, "Value " + i, CABLES.OP_PORT_TYPE_VALUE));
+    inVals.push(newVal);
+}
+
+let defaultVal = op.inValueString("Default Value");
+
+currentVal.set(defaultVal.get());
+oldVal.set(defaultVal.get());
+
+defaultVal.onChange = function ()
+{
+    oldVal.set(currentVal.get());
+    currentVal.set(defaultVal.get());
+};
+
+
+};
+
+Ops.Value.SwitchNumberOnTrigger.prototype = new CABLES.Op();
+CABLES.OPS["338032c5-bf47-454b-8ae1-cd91f17e5c5b"]={f:Ops.Value.SwitchNumberOnTrigger,objName:"Ops.Value.SwitchNumberOnTrigger"};
+
+
+
+
+// **************************************************************
+// 
+// Ops.Trigger.SetNumberOnTrigger
+// 
+// **************************************************************
+
+Ops.Trigger.SetNumberOnTrigger = function()
+{
+CABLES.Op.apply(this,arguments);
+const op=this;
+const attachments={};
+const
+    setValuePort = op.inTriggerButton("Set"),
+    valuePort = op.inValueFloat("Number"),
+    outNext = op.outTrigger("Next"),
+    outValuePort = op.outNumber("Out Value");
+
+outValuePort.changeAlways = true;
+
+setValuePort.onTriggered = function ()
+{
+    outValuePort.set(valuePort.get());
+    outNext.trigger();
+};
+
+
+};
+
+Ops.Trigger.SetNumberOnTrigger.prototype = new CABLES.Op();
+CABLES.OPS["9989b1c0-1073-4d5f-bfa0-36dd98b66e27"]={f:Ops.Trigger.SetNumberOnTrigger,objName:"Ops.Trigger.SetNumberOnTrigger"};
+
+
+
+
+// **************************************************************
+// 
+// Ops.Math.Difference
+// 
+// **************************************************************
+
+Ops.Math.Difference = function()
+{
+CABLES.Op.apply(this,arguments);
+const op=this;
+const attachments={};
+const
+    num1 = op.inValue("Number A"),
+    num2 = op.inValue("Number B"),
+    result = op.outNumber("Result");
+
+num1.onChange =
+    num2.onChange = update;
+
+function update()
+{
+    let r = num1.get() - num2.get();
+    r = Math.abs(r);
+    result.set(r);
+}
+
+
+};
+
+Ops.Math.Difference.prototype = new CABLES.Op();
+CABLES.OPS["5431b943-18aa-46e4-bd32-a7eee30d4e51"]={f:Ops.Math.Difference,objName:"Ops.Math.Difference"};
+
+
+
+
+// **************************************************************
+// 
+// Ops.Value.PreviousValueStore
+// 
+// **************************************************************
+
+Ops.Value.PreviousValueStore = function()
+{
+CABLES.Op.apply(this,arguments);
+const op=this;
+const attachments={};
+const
+    val = op.inValueFloat("Value"),
+    outCurrent = op.outNumber("Current Value"),
+    outOldVal = op.outNumber("Previous Value");
+
+let oldValue = 0;
+
+val.onChange = function ()
+{
+    outOldVal.set(oldValue);
+    oldValue = val.get();
+    outCurrent.set(val.get());
+};
+
+
+};
+
+Ops.Value.PreviousValueStore.prototype = new CABLES.Op();
+CABLES.OPS["01716872-67bd-4b31-a4a2-e0ccadf48411"]={f:Ops.Value.PreviousValueStore,objName:"Ops.Value.PreviousValueStore"};
+
+
+
+
+// **************************************************************
+// 
+// Ops.Html.ToggleClass
+// 
+// **************************************************************
+
+Ops.Html.ToggleClass = function()
+{
+CABLES.Op.apply(this,arguments);
+const op=this;
+const attachments={};
+const
+    inEle = op.inObject("HTML Element"),
+    inClassName = op.inString("Classname"),
+    inActive = op.inValueBool("Active", true);
+
+inActive.onChange =
+    inClassName.onChange =
+    inEle.onChange = update;
+
+op.onDelete = remove;
+
+let oldEle = null;
+let oldName = null;
+
+function remove(ele)
+{
+    if (ele && ele.classList) ele.classList.remove(oldName);
+}
+
+function update()
+{
+    let ele = inEle.get();
+    let cn = inClassName.get();
+
+    if (!inEle.isLinked()) remove(oldEle);
+
+    if (!cn || !ele || !ele.classList) return;
+    if (oldEle && ele != oldEle)oldEle.classList.remove(cn);
+    remove(ele);
+
+    if (!inActive.get()) ele.classList.remove(cn);
+    else ele.classList.add(cn);
+
+    oldName = cn;
+    oldEle = ele;
+}
+
+
+};
+
+Ops.Html.ToggleClass.prototype = new CABLES.Op();
+CABLES.OPS["6dd90fb9-7f28-427f-acd8-589f21a906bb"]={f:Ops.Html.ToggleClass,objName:"Ops.Html.ToggleClass"};
+
+
+
+
+// **************************************************************
+// 
+// Ops.Cables.UIMode
+// 
+// **************************************************************
+
+Ops.Cables.UIMode = function()
+{
+CABLES.Op.apply(this,arguments);
+const op=this;
+const attachments={};
+const
+    outUI = op.outBoolNum("UI", op.patch.isEditorMode()),
+    outRemoteViewer = op.outBoolNum("Remote Viewer", window.gui ? window.gui.isRemoteClient : false),
+    outCanvasMode = op.outNumber("Canvas Mode"),
+    outPatchVisible = op.outBoolNum("Patch Field Visible");
+
+if (CABLES.UI)
+{
+    gui.on("canvasModeChange", () =>
+    {
+        outCanvasMode.set(gui.getCanvasMode());
+        outPatchVisible.set(gui.patchView.element.classList.contains("hidden"));
+    });
+}
+
+
+};
+
+Ops.Cables.UIMode.prototype = new CABLES.Op();
+CABLES.OPS["7c110d60-829f-4b06-b3e4-0af911550570"]={f:Ops.Cables.UIMode,objName:"Ops.Cables.UIMode"};
+
+
+
+
+// **************************************************************
+// 
+// Ops.Value.DelayedValue
+// 
+// **************************************************************
+
+Ops.Value.DelayedValue = function()
+{
+CABLES.Op.apply(this,arguments);
+const op=this;
+const attachments={};
+const
+    exe = op.inTrigger("Update"),
+    v = op.inValue("Value", 0),
+    delay = op.inValue("Delay", 0.5),
+    result = op.outNumber("Result", 0),
+    clear = op.inValueBool("Clear on Change", false);
+
+const anim = new CABLES.Anim();
+anim.createPort(op, "easing", function () {}).set("absolute");
+
+exe.onTriggered = function ()
+{
+    result.set(anim.getValue(op.patch.freeTimer.get()) || 0);
+};
+
+v.onChange = function ()
+{
+    const current = anim.getValue(op.patch.freeTimer.get());
+    const t = op.patch.freeTimer.get();
+
+    if (clear.get()) anim.clear(t);
+
+    anim.setValue(t + delay.get(), v.get());
+
+    let lastKey = 0;
+    for (let i = 0; i < anim.keys.length; i++)
+        if (anim.keys[i] && anim.keys[i].time < t)lastKey = i;
+
+    if (lastKey > 2) anim.keys.splice(0, lastKey);
+};
+
+
+};
+
+Ops.Value.DelayedValue.prototype = new CABLES.Op();
+CABLES.OPS["8e7741e0-0b1b-40f3-a62c-ac8a8828dffb"]={f:Ops.Value.DelayedValue,objName:"Ops.Value.DelayedValue"};
+
+
+
+
+// **************************************************************
+// 
+// Ops.Value.TriggerOnChangeNumber
+// 
+// **************************************************************
+
+Ops.Value.TriggerOnChangeNumber = function()
+{
+CABLES.Op.apply(this,arguments);
+const op=this;
+const attachments={};
+const
+    inval = op.inFloat("Value"),
+    next = op.outTrigger("Next"),
+    number = op.outNumber("Number");
+
+inval.onChange = function ()
+{
+    number.set(inval.get());
+    next.trigger();
+};
+
+
+};
+
+Ops.Value.TriggerOnChangeNumber.prototype = new CABLES.Op();
+CABLES.OPS["f5c8c433-ce13-49c4-9a33-74e98f110ed0"]={f:Ops.Value.TriggerOnChangeNumber,objName:"Ops.Value.TriggerOnChangeNumber"};
+
+
+
+
+// **************************************************************
+// 
+// Ops.Vars.VarTriggerNumber
+// 
+// **************************************************************
+
+Ops.Vars.VarTriggerNumber = function()
+{
+CABLES.Op.apply(this,arguments);
+const op=this;
+const attachments={};
+const
+    trigger = op.inTriggerButton("Trigger"),
+    val = op.inValueFloat("Value", 0),
+    next = op.outTrigger("Next");
+
+op.varName = op.inDropDown("Variable", [], "", true);
+
+new CABLES.VarSetOpWrapper(op, "number", val, op.varName, trigger, next);
+
+
+};
+
+Ops.Vars.VarTriggerNumber.prototype = new CABLES.Op();
+CABLES.OPS["2c29baf0-2af2-486d-9218-4299594ee9c1"]={f:Ops.Vars.VarTriggerNumber,objName:"Ops.Vars.VarTriggerNumber"};
+
+
+
+
+// **************************************************************
+// 
+// Ops.String.Concat_v2
+// 
+// **************************************************************
+
+Ops.String.Concat_v2 = function()
+{
+CABLES.Op.apply(this,arguments);
+const op=this;
+const attachments={};
+const
+    string1 = op.inString("string1", "ABC"),
+    string2 = op.inString("string2", "XYZ"),
+    newLine = op.inValueBool("New Line", false),
+    active = op.inBool("Active", true),
+    result = op.outString("result");
+
+newLine.onChange =
+    string2.onChange =
+    string1.onChange =
+    active.onChange = exec;
+
+exec();
+
+function exec()
+{
+    if (!active.get())
+    {
+        return result.set(string1.get());
+    }
+    let s1 = string1.get();
+    let s2 = string2.get();
+    if (!s1 && !s2)
+    {
+        result.set("");
+        return;
+    }
+    if (!s1)s1 = "";
+    if (!s2)s2 = "";
+
+    let nl = "";
+    if (s1 && s2 && newLine.get())nl = "\n";
+    result.set(String(s1) + nl + String(s2));
+}
+
+
+};
+
+Ops.String.Concat_v2.prototype = new CABLES.Op();
+CABLES.OPS["a52722aa-0ca9-402c-a844-b7e98a6c6e60"]={f:Ops.String.Concat_v2,objName:"Ops.String.Concat_v2"};
+
+
+
+
+// **************************************************************
+// 
+// Ops.String.SwitchString
+// 
+// **************************************************************
+
+Ops.String.SwitchString = function()
+{
+CABLES.Op.apply(this,arguments);
+const op=this;
+const attachments={};
+const
+    idx=op.inValueInt("Index"),
+    result=op.outString("Result");
+
+const valuePorts=[];
+
+idx.onChange=update;
+
+for(var i=0;i<10;i++)
+{
+    var p=op.inString("String "+i);
+    valuePorts.push( p );
+    p.onChange=update;
+}
+
+function update()
+{
+    if(idx.get()>=0 && valuePorts[idx.get()])
+    {
+        result.set( valuePorts[idx.get()].get() );
+    }
+}
+
+};
+
+Ops.String.SwitchString.prototype = new CABLES.Op();
+CABLES.OPS["2a7a0c68-f7c9-4249-b19a-d2de5cb4862c"]={f:Ops.String.SwitchString,objName:"Ops.String.SwitchString"};
+
+
+
+
+// **************************************************************
+// 
+// Ops.String.String_v2
+// 
+// **************************************************************
+
+Ops.String.String_v2 = function()
+{
+CABLES.Op.apply(this,arguments);
+const op=this;
+const attachments={};
+const
+    v=op.inString("value",""),
+    result=op.outString("String");
+
+v.onChange=function()
+{
+    result.set(v.get());
+};
+
+
+
+};
+
+Ops.String.String_v2.prototype = new CABLES.Op();
+CABLES.OPS["d697ff82-74fd-4f31-8f54-295bc64e713d"]={f:Ops.String.String_v2,objName:"Ops.String.String_v2"};
+
+
+
+
+// **************************************************************
+// 
+// Ops.Math.GaussianRandomArray
+// 
+// **************************************************************
+
+Ops.Math.GaussianRandomArray = function()
+{
+CABLES.Op.apply(this,arguments);
+const op=this;
+const attachments={};
+const
+    inNum = op.inValueInt("Num", 100),
+    outArr = op.outArray("Array"),
+    inDev = op.inValue("Deviation", 1),
+    seed = op.inValueFloat("Random Seed");
+
+let arr = [];
+let stdDev = 1;
+let previous = false;
+let nextGaussian = null;
+let y2;
+
+seed.onChange = inDev.onChange = inNum.onChange = update;
+update();
+
+// from https://github.com/processing/p5.js/blob/master/src/math/random.js
+
+function randomGaussian(mean, sd)
+{
+    let y1, x1, x2, w;
+    if (previous)
+    {
+        y1 = y2;
+        previous = false;
+    }
+    else
+    {
+        do
+        {
+            x1 = Math.seededRandom() * 2 - 1;
+            x2 = Math.seededRandom() * 2 - 1;
+            w = x1 * x1 + x2 * x2;
+        } while (w >= 1);
+        w = Math.sqrt((-2 * Math.log(w)) / w);
+        y1 = x1 * w;
+        y2 = x2 * w;
+        previous = true;
+    }
+
+    let m = mean || 0;
+    let s = sd || 1;
+    return y1 * s + m;
+}
+
+function update()
+{
+    stdDev = inDev.get();
+    Math.randomSeed = seed.get();
+
+    arr.length = Math.floor(inNum.get()) || 0;
+    for (let i = 0; i < arr.length; i++)
+    {
+        arr[i] = randomGaussian(0, stdDev);
+    }
+
+    outArr.set(null);
+    outArr.set(arr);
+}
+
+
+};
+
+Ops.Math.GaussianRandomArray.prototype = new CABLES.Op();
+CABLES.OPS["1a8c3535-6fce-4cba-8601-ddb7a5dd7656"]={f:Ops.Math.GaussianRandomArray,objName:"Ops.Math.GaussianRandomArray"};
+
+
+
+
+// **************************************************************
+// 
+// Ops.Patch.Pw01AEC.AccumulatorPlain
+// 
+// **************************************************************
+
+Ops.Patch.Pw01AEC.AccumulatorPlain = function()
+{
+CABLES.Op.apply(this,arguments);
+const op=this;
+const attachments={};
+const
+    exe = op.inTrigger("Trigger in"),
+    inAddNumber = op.inValueFloat("Add to number", 0.0),
+    inMultiplier = op.inValueFloat("Multiplier to add number", 1.0),
+    inSetNumber = op.inValueFloat("Default Value", 1.0),
+    inSet = op.inTriggerButton("Set Default Value"),
+    outNumber = op.outNumber("Current value");
+
+//let lastTime = performance.now();
+let currentNumber = 0.0;
+let firsttime = true;
+
+inSet.onTriggered = resetNumber;
+
+function resetNumber()
+{
+    currentNumber = inSetNumber.get();
+    outNumber.set(currentNumber);
+    firsttime = true;
+}
+
+exe.onTriggered = function ()
+{
+    if (!firsttime)
+    {
+        //let diff = (performance.now() - lastTime) / 100;
+        currentNumber += inAddNumber.get() * inMultiplier.get();
+        outNumber.set(currentNumber);
+    }
+    //lastTime = performance.now();
+    firsttime = false;
+};
+
+
+};
+
+Ops.Patch.Pw01AEC.AccumulatorPlain.prototype = new CABLES.Op();
+CABLES.OPS["7a2656ad-a91e-48ab-a140-0753e7186476"]={f:Ops.Patch.Pw01AEC.AccumulatorPlain,objName:"Ops.Patch.Pw01AEC.AccumulatorPlain"};
+
+
+
+
+// **************************************************************
+// 
+// Ops.Math.Cosine
+// 
+// **************************************************************
+
+Ops.Math.Cosine = function()
+{
+CABLES.Op.apply(this,arguments);
+const op=this;
+const attachments={};
+const
+    value = op.inValue("Value"),
+    phase = op.inValue("Phase", 0.0),
+    mul = op.inValue("Frequency", 1.0),
+    amplitude = op.inValue("Amplitude", 1.0),
+    invert = op.inValueBool("asine", false),
+    result = op.outNumber("Result");
+
+let calculate = Math.cos;
+
+value.onChange = function ()
+{
+    result.set(
+        amplitude.get() * calculate((value.get() * mul.get()) + phase.get())
+    );
+};
+
+invert.onChange = function ()
+{
+    if (invert.get()) calculate = Math.acos;
+    else calculate = Math.cos;
+};
+
+
+};
+
+Ops.Math.Cosine.prototype = new CABLES.Op();
+CABLES.OPS["b51166c4-e0a8-441a-b724-1531effdc52f"]={f:Ops.Math.Cosine,objName:"Ops.Math.Cosine"};
+
+
+
+
+// **************************************************************
+// 
+// Ops.Math.Pi
+// 
+// **************************************************************
+
+Ops.Math.Pi = function()
+{
+CABLES.Op.apply(this,arguments);
+const op=this;
+const attachments={};
+const
+    multiply = op.inValueFloat("Multiply amount", 1.0),
+    p = op.outNumber("Pi", Math.PI);
+
+multiply.onChange = function ()
+{
+    p.setValue(Math.PI * multiply.get());
+};
+
+
+};
+
+Ops.Math.Pi.prototype = new CABLES.Op();
+CABLES.OPS["311e8179-9a7c-43de-9eb2-84577d702974"]={f:Ops.Math.Pi,objName:"Ops.Math.Pi"};
+
+
+
+
+// **************************************************************
+// 
+// Ops.Math.Abs
+// 
+// **************************************************************
+
+Ops.Math.Abs = function()
+{
+CABLES.Op.apply(this,arguments);
+const op=this;
+const attachments={};
+const
+    number = op.inValue("number"),
+    result = op.outNumber("result");
+
+number.onChange = function ()
+{
+    result.set(Math.abs(number.get()));
+};
+
+
+};
+
+Ops.Math.Abs.prototype = new CABLES.Op();
+CABLES.OPS["6b5af21d-065f-44d2-9442-8b7a254753f6"]={f:Ops.Math.Abs,objName:"Ops.Math.Abs"};
+
+
+
+
+// **************************************************************
+// 
+// Ops.Math.RandomNumbers_v3
+// 
+// **************************************************************
+
+Ops.Math.RandomNumbers_v3 = function()
+{
+CABLES.Op.apply(this,arguments);
+const op=this;
+const attachments={};
+const
+    inSeed = op.inValueFloat("Seed", 1),
+    min = op.inValueFloat("Min", 0),
+    max = op.inValueFloat("Max", 1),
+    outX = op.outNumber("X"),
+    outY = op.outNumber("Y"),
+    outZ = op.outNumber("Z"),
+    outW = op.outNumber("W");
+
+inSeed.onChange =
+    min.onChange =
+    max.onChange = update;
+update();
+
+function update()
+{
+    const inMin = min.get();
+    const inMax = max.get();
+    Math.randomSeed = Math.abs(inSeed.get() || 0) * 571.1 + 1.0;
+    outX.set(Math.seededRandom() * (inMax - inMin) + inMin);
+    outY.set(Math.seededRandom() * (inMax - inMin) + inMin);
+    outZ.set(Math.seededRandom() * (inMax - inMin) + inMin);
+    outW.set(Math.seededRandom() * (inMax - inMin) + inMin);
+}
+
+
+};
+
+Ops.Math.RandomNumbers_v3.prototype = new CABLES.Op();
+CABLES.OPS["d2b970e1-9406-4459-995c-5a594acd88e3"]={f:Ops.Math.RandomNumbers_v3,objName:"Ops.Math.RandomNumbers_v3"};
+
+
+
+
+// **************************************************************
+// 
+// Ops.Gl.TextureEffects.Noise.PerlinNoise_v2
+// 
+// **************************************************************
+
+Ops.Gl.TextureEffects.Noise.PerlinNoise_v2 = function()
+{
+CABLES.Op.apply(this,arguments);
+const op=this;
+const attachments={"perlinnoise3d_frag":"UNI float z;\nUNI float x;\nUNI float y;\nUNI float scale;\nUNI float rangeMul;\nUNI float harmonics;\nUNI float aspect;\n\nIN vec2 texCoord;\nUNI sampler2D tex;\n\n#ifdef HAS_TEX_OFFSETMAP\n    UNI sampler2D texOffsetZ;\n    UNI float offMul;\n#endif\n\n#ifdef HAS_TEX_MASK\n    UNI sampler2D texMask;\n#endif\n\nUNI float amount;\n\n{{CGL.BLENDMODES3}}\n\n\nfloat Interpolation_C2( float x ) { return x * x * x * (x * (x * 6.0 - 15.0) + 10.0); }   //  6x^5-15x^4+10x^3\t( Quintic Curve.  As used by Perlin in Improved Noise.  http://mrl.nyu.edu/~perlin/paper445.pdf )\nvec2 Interpolation_C2( vec2 x ) { return x * x * x * (x * (x * 6.0 - 15.0) + 10.0); }\nvec3 Interpolation_C2( vec3 x ) { return x * x * x * (x * (x * 6.0 - 15.0) + 10.0); }\nvec4 Interpolation_C2( vec4 x ) { return x * x * x * (x * (x * 6.0 - 15.0) + 10.0); }\nvec4 Interpolation_C2_InterpAndDeriv( vec2 x ) { return x.xyxy * x.xyxy * ( x.xyxy * ( x.xyxy * ( x.xyxy * vec2( 6.0, 0.0 ).xxyy + vec2( -15.0, 30.0 ).xxyy ) + vec2( 10.0, -60.0 ).xxyy ) + vec2( 0.0, 30.0 ).xxyy ); }\nvec3 Interpolation_C2_Deriv( vec3 x ) { return x * x * (x * (x * 30.0 - 60.0) + 30.0); }\n\n\nvoid FAST32_hash_3D( vec3 gridcell, out vec4 lowz_hash, out vec4 highz_hash )\t//\tgenerates a random number for each of the 8 cell corners\n{\n    //    gridcell is assumed to be an integer coordinate\n\n    //\tTODO: \tthese constants need tweaked to find the best possible noise.\n    //\t\t\tprobably requires some kind of brute force computational searching or something....\n    const vec2 OFFSET = vec2( 50.0, 161.0 );\n    const float DOMAIN = 69.0;\n    const float SOMELARGEFLOAT = 635.298681;\n    const float ZINC = 48.500388;\n\n    //\ttruncate the domain\n    gridcell.xyz = gridcell.xyz - floor(gridcell.xyz * ( 1.0 / DOMAIN )) * DOMAIN;\n    vec3 gridcell_inc1 = step( gridcell, vec3( DOMAIN - 1.5 ) ) * ( gridcell + 1.0 );\n\n    //\tcalculate the noise\n    vec4 P = vec4( gridcell.xy, gridcell_inc1.xy ) + OFFSET.xyxy;\n    P *= P;\n    P = P.xzxz * P.yyww;\n    highz_hash.xy = vec2( 1.0 / ( SOMELARGEFLOAT + vec2( gridcell.z, gridcell_inc1.z ) * ZINC ) );\n    lowz_hash = fract( P * highz_hash.xxxx );\n    highz_hash = fract( P * highz_hash.yyyy );\n}\n\n\n\n\nvoid FAST32_hash_3D( \tvec3 gridcell,\n                        out vec4 lowz_hash_0,\n                        out vec4 lowz_hash_1,\n                        out vec4 lowz_hash_2,\n                        out vec4 highz_hash_0,\n                        out vec4 highz_hash_1,\n                        out vec4 highz_hash_2\t)\t\t//\tgenerates 3 random numbers for each of the 8 cell corners\n{\n    //    gridcell is assumed to be an integer coordinate\n\n    //\tTODO: \tthese constants need tweaked to find the best possible noise.\n    //\t\t\tprobably requires some kind of brute force computational searching or something....\n    const vec2 OFFSET = vec2( 50.0, 161.0 );\n    const float DOMAIN = 69.0;\n    const vec3 SOMELARGEFLOATS = vec3( 635.298681, 682.357502, 668.926525 );\n    const vec3 ZINC = vec3( 48.500388, 65.294118, 63.934599 );\n\n    //\ttruncate the domain\n    gridcell.xyz = gridcell.xyz - floor(gridcell.xyz * ( 1.0 / DOMAIN )) * DOMAIN;\n    vec3 gridcell_inc1 = step( gridcell, vec3( DOMAIN - 1.5 ) ) * ( gridcell + 1.0 );\n\n    //\tcalculate the noise\n    vec4 P = vec4( gridcell.xy, gridcell_inc1.xy ) + OFFSET.xyxy;\n    P *= P;\n    P = P.xzxz * P.yyww;\n    vec3 lowz_mod = vec3( 1.0 / ( SOMELARGEFLOATS.xyz + gridcell.zzz * ZINC.xyz ) );\n    vec3 highz_mod = vec3( 1.0 / ( SOMELARGEFLOATS.xyz + gridcell_inc1.zzz * ZINC.xyz ) );\n    lowz_hash_0 = fract( P * lowz_mod.xxxx );\n    highz_hash_0 = fract( P * highz_mod.xxxx );\n    lowz_hash_1 = fract( P * lowz_mod.yyyy );\n    highz_hash_1 = fract( P * highz_mod.yyyy );\n    lowz_hash_2 = fract( P * lowz_mod.zzzz );\n    highz_hash_2 = fract( P * highz_mod.zzzz );\n}\nfloat Falloff_Xsq_C1( float xsq ) { xsq = 1.0 - xsq; return xsq*xsq; }\t// ( 1.0 - x*x )^2   ( Used by Humus for lighting falloff in Just Cause 2.  GPUPro 1 )\nfloat Falloff_Xsq_C2( float xsq ) { xsq = 1.0 - xsq; return xsq*xsq*xsq; }\t// ( 1.0 - x*x )^3.   NOTE: 2nd derivative is 0.0 at x=1.0, but non-zero at x=0.0\nvec4 Falloff_Xsq_C2( vec4 xsq ) { xsq = 1.0 - xsq; return xsq*xsq*xsq; }\n\n\n//\n//\tPerlin Noise 3D  ( gradient noise )\n//\tReturn value range of -1.0->1.0\n//\thttp://briansharpe.files.wordpress.com/2011/11/perlinsample.jpg\n//\nfloat Perlin3D( vec3 P )\n{\n    //\testablish our grid cell and unit position\n    vec3 Pi = floor(P);\n    vec3 Pf = P - Pi;\n    vec3 Pf_min1 = Pf - 1.0;\n\n#if 1\n    //\n    //\tclassic noise.\n    //\trequires 3 random values per point.  with an efficent hash function will run faster than improved noise\n    //\n\n    //\tcalculate the hash.\n    //\t( various hashing methods listed in order of speed )\n    vec4 hashx0, hashy0, hashz0, hashx1, hashy1, hashz1;\n    FAST32_hash_3D( Pi, hashx0, hashy0, hashz0, hashx1, hashy1, hashz1 );\n    //SGPP_hash_3D( Pi, hashx0, hashy0, hashz0, hashx1, hashy1, hashz1 );\n\n    //\tcalculate the gradients\n    vec4 grad_x0 = hashx0 - 0.49999;\n    vec4 grad_y0 = hashy0 - 0.49999;\n    vec4 grad_z0 = hashz0 - 0.49999;\n    vec4 grad_x1 = hashx1 - 0.49999;\n    vec4 grad_y1 = hashy1 - 0.49999;\n    vec4 grad_z1 = hashz1 - 0.49999;\n    vec4 grad_results_0 = inversesqrt( grad_x0 * grad_x0 + grad_y0 * grad_y0 + grad_z0 * grad_z0 ) * ( vec2( Pf.x, Pf_min1.x ).xyxy * grad_x0 + vec2( Pf.y, Pf_min1.y ).xxyy * grad_y0 + Pf.zzzz * grad_z0 );\n    vec4 grad_results_1 = inversesqrt( grad_x1 * grad_x1 + grad_y1 * grad_y1 + grad_z1 * grad_z1 ) * ( vec2( Pf.x, Pf_min1.x ).xyxy * grad_x1 + vec2( Pf.y, Pf_min1.y ).xxyy * grad_y1 + Pf_min1.zzzz * grad_z1 );\n\n#if 1\n    //\tClassic Perlin Interpolation\n    vec3 blend = Interpolation_C2( Pf );\n    vec4 res0 = mix( grad_results_0, grad_results_1, blend.z );\n    vec4 blend2 = vec4( blend.xy, vec2( 1.0 - blend.xy ) );\n    float final = dot( res0, blend2.zxzx * blend2.wwyy );\n    final *= 1.1547005383792515290182975610039;\t\t//\t(optionally) scale things to a strict -1.0->1.0 range    *= 1.0/sqrt(0.75)\n    return final;\n#else\n    //\tClassic Perlin Surflet\n    //\thttp://briansharpe.wordpress.com/2012/03/09/modifications-to-classic-perlin-noise/\n    Pf *= Pf;\n    Pf_min1 *= Pf_min1;\n    vec4 vecs_len_sq = vec4( Pf.x, Pf_min1.x, Pf.x, Pf_min1.x ) + vec4( Pf.yy, Pf_min1.yy );\n    float final = dot( Falloff_Xsq_C2( min( vec4( 1.0 ), vecs_len_sq + Pf.zzzz ) ), grad_results_0 ) + dot( Falloff_Xsq_C2( min( vec4( 1.0 ), vecs_len_sq + Pf_min1.zzzz ) ), grad_results_1 );\n    final *= 2.3703703703703703703703703703704;\t\t//\t(optionally) scale things to a strict -1.0->1.0 range    *= 1.0/cube(0.75)\n    return final;\n#endif\n\n#else\n    //\n    //\timproved noise.\n    //\trequires 1 random value per point.  Will run faster than classic noise if a slow hashing function is used\n    //\n\n    //\tcalculate the hash.\n    //\t( various hashing methods listed in order of speed )\n    vec4 hash_lowz, hash_highz;\n    FAST32_hash_3D( Pi, hash_lowz, hash_highz );\n    //BBS_hash_3D( Pi, hash_lowz, hash_highz );\n    //SGPP_hash_3D( Pi, hash_lowz, hash_highz );\n\n    //\n    //\t\"improved\" noise using 8 corner gradients.  Faster than the 12 mid-edge point method.\n    //\tKen mentions using diagonals like this can cause \"clumping\", but we'll live with that.\n    //\t[1,1,1]  [-1,1,1]  [1,-1,1]  [-1,-1,1]\n    //\t[1,1,-1] [-1,1,-1] [1,-1,-1] [-1,-1,-1]\n    //\n    hash_lowz -= 0.5;\n    vec4 grad_results_0_0 = vec2( Pf.x, Pf_min1.x ).xyxy * sign( hash_lowz );\n    hash_lowz = abs( hash_lowz ) - 0.25;\n    vec4 grad_results_0_1 = vec2( Pf.y, Pf_min1.y ).xxyy * sign( hash_lowz );\n    vec4 grad_results_0_2 = Pf.zzzz * sign( abs( hash_lowz ) - 0.125 );\n    vec4 grad_results_0 = grad_results_0_0 + grad_results_0_1 + grad_results_0_2;\n\n    hash_highz -= 0.5;\n    vec4 grad_results_1_0 = vec2( Pf.x, Pf_min1.x ).xyxy * sign( hash_highz );\n    hash_highz = abs( hash_highz ) - 0.25;\n    vec4 grad_results_1_1 = vec2( Pf.y, Pf_min1.y ).xxyy * sign( hash_highz );\n    vec4 grad_results_1_2 = Pf_min1.zzzz * sign( abs( hash_highz ) - 0.125 );\n    vec4 grad_results_1 = grad_results_1_0 + grad_results_1_1 + grad_results_1_2;\n\n    //\tblend the gradients and return\n    vec3 blend = Interpolation_C2( Pf );\n    vec4 res0 = mix( grad_results_0, grad_results_1, blend.z );\n    vec4 blend2 = vec4( blend.xy, vec2( 1.0 - blend.xy ) );\n    return dot( res0, blend2.zxzx * blend2.wwyy ) * (2.0 / 3.0);\t//\t(optionally) mult by (2.0/3.0) to scale to a strict -1.0->1.0 range\n#endif\n}\n\nvoid main()\n{\n    vec4 base=texture(tex,texCoord);\n    vec2 p=vec2(texCoord.x-0.5,texCoord.y-0.5);\n\n    p=p*scale;\n    p=vec2(p.x+0.5-x,p.y+0.5-y);\n\n\n\n    vec3 offset;\n    #ifdef HAS_TEX_OFFSETMAP\n        vec4 offMap=texture(texOffsetZ,texCoord);\n\n        #ifdef OFFSET_X_R\n            offset.x=offMap.r;\n        #endif\n        #ifdef OFFSET_X_G\n            offset.x=offMap.g;\n        #endif\n        #ifdef OFFSET_X_B\n            offset.x=offMap.b;\n        #endif\n\n        #ifdef OFFSET_Y_R\n            offset.y=offMap.r;\n        #endif\n        #ifdef OFFSET_Y_G\n            offset.y=offMap.g;\n        #endif\n        #ifdef OFFSET_Y_B\n            offset.y=offMap.b;\n        #endif\n\n        #ifdef OFFSET_Z_R\n            offset.z=offMap.r;\n        #endif\n        #ifdef OFFSET_Z_G\n            offset.z=offMap.g;\n        #endif\n        #ifdef OFFSET_Z_B\n            offset.z=offMap.b;\n        #endif\n        offset*=offMul;\n    #endif\n\n    float aa=texture(tex,texCoord).r;\n\n    float v = 0.0;\n    p.x*=aspect;\n\n    v+=Perlin3D(vec3(p.x,p.y,z)+offset);\n\n    #ifdef HARMONICS\n        if (harmonics >= 2.0) v += Perlin3D(vec3(p.x,p.y,z)*2.2+offset) * 0.5;\n        if (harmonics >= 3.0) v += Perlin3D(vec3(p.x,p.y,z)*4.3+offset) * 0.25;\n        if (harmonics >= 4.0) v += Perlin3D(vec3(p.x,p.y,z)*8.4+offset) * 0.125;\n        if (harmonics >= 5.0) v += Perlin3D(vec3(p.x,p.y,z)*16.5+offset) * 0.0625;\n    #endif\n\n\n    v*=rangeMul;\n    v=v*0.5+0.5;\n    float v2=v;\n    float v3=v;\n\n    #ifdef RGB\n        v2=Perlin3D(vec3(p.x+2.0,p.y+2.0,z))*0.5+0.5;\n\n        #ifdef HARMONICS\n            if (harmonics >= 2.0) v2 += Perlin3D(vec3(p.x,p.y,z)*2.2+offset) * 0.5;\n            if (harmonics >= 3.0) v2 += Perlin3D(vec3(p.x,p.y,z)*4.3+offset) * 0.25;\n            if (harmonics >= 4.0) v2 += Perlin3D(vec3(p.x,p.y,z)*8.4+offset) * 0.125;\n            if (harmonics >= 5.0) v2 += Perlin3D(vec3(p.x,p.y,z)*16.5+offset) * 0.0625;\n        #endif\n\n        v3=Perlin3D(vec3(p.x+3.0,p.y+3.0,z))*0.5+0.5;\n\n        #ifdef HARMONICS\n            if (harmonics >= 2.0) v3 += Perlin3D(vec3(p.x,p.y,z)*2.2+offset) * 0.5;\n            if (harmonics >= 3.0) v3 += Perlin3D(vec3(p.x,p.y,z)*4.3+offset) * 0.25;\n            if (harmonics >= 4.0) v3 += Perlin3D(vec3(p.x,p.y,z)*8.4+offset) * 0.125;\n            if (harmonics >= 5.0) v3 += Perlin3D(vec3(p.x,p.y,z)*16.5+offset) * 0.0625;\n        #endif\n\n    #endif\n\n    vec4 col=vec4(v,v2,v3,1.0);\n\n    float str=1.0;\n    #ifdef HAS_TEX_MASK\n        str=texture(texMask,texCoord).r;\n    #endif\n\n    col=cgl_blendPixel(base,col,amount*str);\n\n\n    #ifdef NO_CHANNEL_R\n        col.r=base.r;\n    #endif\n    #ifdef NO_CHANNEL_G\n        col.g=base.g;\n    #endif\n    #ifdef NO_CHANNEL_B\n        col.b=base.b;\n    #endif\n\n\n\n    outColor=col;\n}\n",};
+const
+    render = op.inTrigger("render"),
+    inTexMask = op.inTexture("Mask"),
+    blendMode = CGL.TextureEffect.AddBlendSelect(op),
+    maskAlpha = CGL.TextureEffect.AddBlendAlphaMask(op),
+    amount = op.inValueSlider("Amount", 1),
+    inMode = op.inSwitch("Color", ["Mono", "RGB", "R", "G", "B"], "Mono"),
+    scale = op.inValue("Scale", 8),
+    rangeMul = op.inValue("Multiply", 1),
+    inHarmonics = op.inSwitch("Harmonics", ["1", "2", "3", "4", "5"], "1"),
+    x = op.inValue("X", 0),
+    y = op.inValue("Y", 0),
+    z = op.inValue("Z", 0),
+    trigger = op.outTrigger("trigger");
+
+const cgl = op.patch.cgl;
+const shader = new CGL.Shader(cgl, "perlinnoise");
+
+op.setPortGroup("Position", [x, y, z]);
+
+shader.setSource(shader.getDefaultVertexShader(), attachments.perlinnoise3d_frag);
+
+const
+    textureUniform = new CGL.Uniform(shader, "t", "tex", 0),
+    textureUniformOffZ = new CGL.Uniform(shader, "t", "texOffsetZ", 1),
+    textureUniformMask = new CGL.Uniform(shader, "t", "texMask", 2),
+
+    uniZ = new CGL.Uniform(shader, "f", "z", z),
+    uniX = new CGL.Uniform(shader, "f", "x", x),
+    uniY = new CGL.Uniform(shader, "f", "y", y),
+    uniScale = new CGL.Uniform(shader, "f", "scale", scale),
+    amountUniform = new CGL.Uniform(shader, "f", "amount", amount),
+    rangeMulUniform = new CGL.Uniform(shader, "f", "rangeMul", rangeMul);
+
+CGL.TextureEffect.setupBlending(op, shader, blendMode, amount, maskAlpha);
+
+// offsetMap
+
+const
+    inTexOffsetZ = op.inTexture("Offset"),
+    inOffsetMul = op.inFloat("Offset Multiply", 1),
+    offsetX = op.inSwitch("Offset X", ["None", "R", "G", "B"], "None"),
+    offsetY = op.inSwitch("Offset Y", ["None", "R", "G", "B"], "None"),
+    offsetZ = op.inSwitch("Offset Z", ["None", "R", "G", "B"], "R");
+
+op.setPortGroup("Offset Map", [inTexOffsetZ, offsetZ, offsetY, offsetX, inOffsetMul]);
+
+const uniOffMul = new CGL.Uniform(shader, "f", "offMul", inOffsetMul);
+
+const uniAspect = new CGL.Uniform(shader, "f", "aspect", 1);
+const uniHarmonics = new CGL.Uniform(shader, "f", "harmonics", 0);
+
+inHarmonics.onChange = () =>
+{
+    uniHarmonics.setValue(parseFloat(inHarmonics.get()));
+    shader.toggleDefine("HARMONICS", inHarmonics.get() > 1);
+};
+
+offsetX.onChange =
+offsetY.onChange =
+offsetZ.onChange =
+inTexMask.onChange =
+inMode.onChange =
+inTexOffsetZ.onChange = updateDefines;
+updateDefines();
+
+function updateDefines()
+{
+    shader.toggleDefine("NO_CHANNEL_R", inMode.get() == "G" || inMode.get() == "B");
+    shader.toggleDefine("NO_CHANNEL_G", inMode.get() == "R" || inMode.get() == "B");
+    shader.toggleDefine("NO_CHANNEL_B", inMode.get() == "R" || inMode.get() == "G");
+
+    shader.toggleDefine("HAS_TEX_OFFSETMAP", inTexOffsetZ.get());
+    shader.toggleDefine("HAS_TEX_MASK", inTexMask.get());
+
+    shader.toggleDefine("OFFSET_X_R", offsetX.get() == "R");
+    shader.toggleDefine("OFFSET_X_G", offsetX.get() == "G");
+    shader.toggleDefine("OFFSET_X_B", offsetX.get() == "B");
+
+    shader.toggleDefine("OFFSET_Y_R", offsetY.get() == "R");
+    shader.toggleDefine("OFFSET_Y_G", offsetY.get() == "G");
+    shader.toggleDefine("OFFSET_Y_B", offsetY.get() == "B");
+
+    shader.toggleDefine("OFFSET_Z_R", offsetZ.get() == "R");
+    shader.toggleDefine("OFFSET_Z_G", offsetZ.get() == "G");
+    shader.toggleDefine("OFFSET_Z_B", offsetZ.get() == "B");
+
+    offsetX.setUiAttribs({ "greyout": !inTexOffsetZ.isLinked() });
+    offsetY.setUiAttribs({ "greyout": !inTexOffsetZ.isLinked() });
+    offsetZ.setUiAttribs({ "greyout": !inTexOffsetZ.isLinked() });
+    inOffsetMul.setUiAttribs({ "greyout": !inTexOffsetZ.isLinked() });
+
+    shader.toggleDefine("RGB", inMode.get() == "RGB");
+}
+
+render.onTriggered = function ()
+{
+    if (!CGL.TextureEffect.checkOpInEffect(op, 3)) return;
+
+    cgl.pushShader(shader);
+    cgl.currentTextureEffect.bind();
+
+    uniAspect.setValue(cgl.currentTextureEffect.aspectRatio);
+
+    cgl.setTexture(0, cgl.currentTextureEffect.getCurrentSourceTexture().tex);
+    if (inTexOffsetZ.get()) cgl.setTexture(1, inTexOffsetZ.get().tex);
+    if (inTexMask.get()) cgl.setTexture(2, inTexMask.get().tex);
+
+    cgl.currentTextureEffect.finish();
+    cgl.popShader();
+
+    trigger.trigger();
+};
+
+
+};
+
+Ops.Gl.TextureEffects.Noise.PerlinNoise_v2.prototype = new CABLES.Op();
+CABLES.OPS["b4b238d3-db68-4206-8dc7-4b52433fc932"]={f:Ops.Gl.TextureEffects.Noise.PerlinNoise_v2,objName:"Ops.Gl.TextureEffects.Noise.PerlinNoise_v2"};
+
+
+
+
+// **************************************************************
+// 
+// Ops.Value.Boolean
+// 
+// **************************************************************
+
+Ops.Value.Boolean = function()
+{
+CABLES.Op.apply(this,arguments);
+const op=this;
+const attachments={};
+const
+    v = op.inValueBool("value", false),
+    result = op.outBoolNum("result");
+
+result.set(false);
+v.onChange = exec;
+
+function exec()
+{
+    if (result.get() != v.get()) result.set(v.get());
+}
+
+
+};
+
+Ops.Value.Boolean.prototype = new CABLES.Op();
+CABLES.OPS["83e2d74c-9741-41aa-a4d7-1bda4ef55fb3"]={f:Ops.Value.Boolean,objName:"Ops.Value.Boolean"};
+
+
+
+
+// **************************************************************
+// 
+// Ops.Value.MaximumSafeInteger
+// 
+// **************************************************************
+
+Ops.Value.MaximumSafeInteger = function()
+{
+CABLES.Op.apply(this,arguments);
+const op=this;
+const attachments={};
+op.outNumber("Max Int", Number.MAX_SAFE_INTEGER);
+
+
+};
+
+Ops.Value.MaximumSafeInteger.prototype = new CABLES.Op();
+CABLES.OPS["0efefbb7-461c-4a34-b7fd-28b89b0ceb3f"]={f:Ops.Value.MaximumSafeInteger,objName:"Ops.Value.MaximumSafeInteger"};
+
+
+
+
+// **************************************************************
+// 
+// Ops.String.FreezeString
+// 
+// **************************************************************
+
+Ops.String.FreezeString = function()
+{
+CABLES.Op.apply(this,arguments);
+const op=this;
+const attachments={};
+const
+    inStr = op.inString("String", "default"),
+    inFreeze = op.inTriggerButton("Button"),
+    inHidden = op.inString("StoredString"),
+    outString = op.outString("Frozen String");
+
+inFreeze.onTriggered =
+inHidden.onTriggered = update;
+
+inHidden.setUiAttribs({ "hideParam": true, "hidePort": true, "ignoreBigPort": true });
+
+outString.onLinkChanged = () =>
+{
+    outString.set(inHidden.get());
+};
+
+function update()
+{
+    inHidden.set(inStr.get());
+    outString.set(inHidden.get());
+}
+
+
+};
+
+Ops.String.FreezeString.prototype = new CABLES.Op();
+CABLES.OPS["9ae2598f-8b5a-4749-aff3-a507c9957225"]={f:Ops.String.FreezeString,objName:"Ops.String.FreezeString"};
 
 
 
