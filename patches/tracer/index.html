@@ -673,6 +673,18 @@
 
         function patchInitialized(patch) {
             // You can now access the patch object (patch), register variable watchers and so on
+
+            const imagelistsVar = CABLES.patch.getVar("imagelist json asset name");
+            if(imagelistsVar) {
+              imagelistsVar.setValue([
+                "image_folder_plants2.json",
+                "image_folder_computers.json",
+                "image_folder_communication.json",
+              ]);
+            }
+
+            const fxContextVar = CABLES.patch.getVar("fxContext")
+            if (fxContextVar) fxContextVar.setValue($fx.context)
         }
 
         function patchFinishedLoading(patch) {
@@ -689,6 +701,7 @@
                 "glCanvasResizeToWindow": true,
                 "onPatchLoaded": patchInitialized,
                 "onFinishedLoading": patchFinishedLoading,
+                onError: (err => alert(err)),
                 "canvas":{"alpha":true,"premultipliedAlpha":true} // make canvas transparent
             });
 

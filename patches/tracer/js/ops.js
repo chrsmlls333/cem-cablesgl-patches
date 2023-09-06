@@ -4580,241 +4580,6 @@ CABLES.OPS["b5249226-6095-4828-8a1c-080654e192fa"]={f:Ops.Vars.VarSetNumber_v2,o
 
 // **************************************************************
 // 
-// Ops.Gl.ForceCanvasSize
-// 
-// **************************************************************
-
-Ops.Gl.ForceCanvasSize = function()
-{
-CABLES.Op.apply(this,arguments);
-const op=this;
-const attachments={};
-const
-    inTrigger = op.inTrigger("Trigger"),
-    inActive = op.inBool("Active", true),
-    inWhat = op.inSwitch("Force", ["Resolution", "Aspect Ratio"], "Resolution"),
-    inCenter = op.inBool("Center In Parent", true),
-    inScaleFit = op.inBool("Scale to fit Parent", false),
-    inWidth = op.inInt("Set Width", 300),
-    inHeight = op.inInt("Set Height", 200),
-    inPresets = op.inDropDown("Aspect Ratio", ["Custom", "21:9", "2:1", "16:9", "16:10", "4:3", "1:1", "9:16", "1:2", "iPhoneXr Vert"], "16:9"),
-    inRatio = op.inFloat("Ratio", 0),
-    inStretch = op.inDropDown("Fill Parent", ["Auto", "Width", "Height", "Both"], "Auto"),
-    next = op.outTrigger("Next"),
-    outWidth = op.outNumber("Width"),
-    outHeight = op.outNumber("Height"),
-    outMarginLeft = op.outNumber("Margin Left"),
-    outMarginTop = op.outNumber("Margin Top");
-
-op.setPortGroup("Size", [inWidth, inHeight]);
-op.setPortGroup("Proportions", [inRatio, inStretch, inPresets]);
-
-let align = 0;
-const ALIGN_NONE = 0;
-const ALIGN_WIDTH = 1;
-const ALIGN_HEIGHT = 2;
-const ALIGN_BOTH = 3;
-const ALIGN_AUTO = 4;
-
-inStretch.onChange = updateUi;
-inWhat.onChange = updateMethod;
-inCenter.onChange =
-    inTrigger.onLinkChanged = removeStyles;
-
-inPresets.onChange = updateRatioPreset;
-
-const cgl = op.patch.cgl;
-
-if (window.getComputedStyle(cgl.canvas).position === "absolute")
-{
-    cgl.canvas.style.position = "initial";
-    op.warn("[cables forceCanvasSize] - canvas was positioned absolute, not compatible with Ops.Gl.ForceCanvasSize");
-}
-
-updateUi();
-
-function updateMethod()
-{
-    if (inWhat.get() == "Aspect Ratio")
-    {
-        inRatio.set(100);
-        updateRatioPreset();
-    }
-    updateUi();
-}
-
-function updateRatioPreset()
-{
-    const pr = inPresets.get();
-    if (pr == "Custom") return;
-    else if (pr == "16:9")inRatio.set(16 / 9);
-    else if (pr == "4:3")inRatio.set(4 / 3);
-    else if (pr == "16:10")inRatio.set(16 / 10);
-    else if (pr == "21:9")inRatio.set(21 / 9);
-    else if (pr == "2:1")inRatio.set(2);
-    else if (pr == "1:1")inRatio.set(1);
-    else if (pr == "9:16")inRatio.set(9 / 16);
-    else if (pr == "1:2")inRatio.set(0.5);
-    else if (pr == "iPhoneXr Vert")inRatio.set(9 / 19.5);
-}
-
-inRatio.onChange = () =>
-{
-    removeStyles();
-};
-
-inActive.onChange = function ()
-{
-    if (!inActive.get())removeStyles();
-};
-
-function updateUi()
-{
-    const forceRes = inWhat.get() == "Resolution";
-    inWidth.setUiAttribs({ "greyout": !forceRes });
-    inHeight.setUiAttribs({ "greyout": !forceRes });
-
-    inPresets.setUiAttribs({ "greyout": forceRes });
-    inStretch.setUiAttribs({ "greyout": forceRes });
-    inRatio.setUiAttribs({ "greyout": forceRes });
-
-    align = 0;
-
-    if (!forceRes)
-    {
-        const strAlign = inStretch.get();
-        if (strAlign == "Width")align = ALIGN_WIDTH;
-        else if (strAlign == "Height")align = ALIGN_HEIGHT;
-        else if (strAlign == "Both")align = ALIGN_BOTH;
-        else if (strAlign == "Auto")align = ALIGN_AUTO;
-    }
-}
-
-function removeStyles()
-{
-    cgl.canvas.style["margin-top"] = "";
-    cgl.canvas.style["margin-left"] = "";
-
-    outMarginLeft.set(0);
-    outMarginTop.set(0);
-
-    const rect = cgl.canvas.parentNode.getBoundingClientRect();
-    cgl.setSize(rect.width, rect.height);
-}
-
-inTrigger.onTriggered = function ()
-{
-    if (!inActive.get()) return next.trigger();
-
-    let w = inWidth.get();
-    let h = inHeight.get();
-
-    let clientRect = cgl.canvas.parentNode.getBoundingClientRect();
-    if (clientRect.height == 0)
-    {
-        cgl.canvas.parentNode.style.height = "100%";
-        clientRect = cgl.canvas.parentNode.getBoundingClientRect();
-    }
-    if (clientRect.width == 0)
-    {
-        cgl.canvas.parentNode.style.width = "100%";
-        clientRect = cgl.canvas.parentNode.getBoundingClientRect();
-    }
-
-    if (align == ALIGN_WIDTH)
-    {
-        w = clientRect.width;
-        h = w * 1 / inRatio.get();
-    }
-    else if (align == ALIGN_HEIGHT)
-    {
-        h = clientRect.height;
-        w = h * inRatio.get();
-    }
-    else if (align == ALIGN_AUTO)
-    {
-        const rect = clientRect;
-
-        h = rect.height;
-        w = h * inRatio.get();
-
-        if (w > rect.width)
-        {
-            w = rect.width;
-            h = w * 1 / inRatio.get();
-        }
-    }
-    else if (align == ALIGN_BOTH)
-    {
-        const rect = clientRect;
-        h = rect.height;
-        w = h * inRatio.get();
-
-        if (w < rect.width)
-        {
-            w = rect.width;
-            h = w * 1 / inRatio.get();
-        }
-    }
-
-    w = Math.ceil(w);
-    h = Math.ceil(h);
-
-    if (inCenter.get())
-    {
-        const rect = clientRect;
-
-        const t = (rect.height - h) / 2;
-        const l = (rect.width - w) / 2;
-
-        outMarginLeft.set(l);
-        outMarginTop.set(t);
-
-        cgl.canvas.style["margin-top"] = t + "px";
-        cgl.canvas.style["margin-left"] = l + "px";
-    }
-    else
-    {
-        cgl.canvas.style["margin-top"] = "0";
-        cgl.canvas.style["margin-left"] = "0";
-
-        outMarginLeft.set(0);
-        outMarginTop.set(0);
-    }
-
-    if (inScaleFit.get())
-    {
-        const rect = clientRect;
-        const scX = rect.width / inWidth.get();
-        const scY = rect.height / inHeight.get();
-        cgl.canvas.style.transform = "scale(" + Math.min(scX, scY) + ")";
-    }
-    else
-    {
-        cgl.canvas.style.transform = "scale(1)";
-    }
-
-    if (cgl.canvas.width / cgl.pixelDensity != w || cgl.canvas.height / cgl.pixelDensity != h)
-    {
-        outWidth.set(w);
-        outHeight.set(h);
-        cgl.setSize(w, h);
-    }
-    // else
-    next.trigger();
-};
-
-
-};
-
-Ops.Gl.ForceCanvasSize.prototype = new CABLES.Op();
-CABLES.OPS["a8b3380e-cd4a-4000-9ee9-1c65a11027dd"]={f:Ops.Gl.ForceCanvasSize,objName:"Ops.Gl.ForceCanvasSize"};
-
-
-
-
-// **************************************************************
-// 
 // Ops.Math.PowerOfTwoSize
 // 
 // **************************************************************
@@ -5124,124 +4889,6 @@ op.onDelete = function ()
 
 Ops.Html.CSS_v2.prototype = new CABLES.Op();
 CABLES.OPS["a56d3edd-06ad-44ed-9810-dbf714600c67"]={f:Ops.Html.CSS_v2,objName:"Ops.Html.CSS_v2"};
-
-
-
-
-// **************************************************************
-// 
-// Ops.Ui.VizGraph
-// 
-// **************************************************************
-
-Ops.Ui.VizGraph = function()
-{
-CABLES.Op.apply(this,arguments);
-const op=this;
-const attachments={};
-const
-    inNum1 = op.inFloat("Number 1"),
-    inNum2 = op.inFloat("Number 2"),
-    inNum3 = op.inFloat("Number 3"),
-    inNum4 = op.inFloat("Number 4"),
-    inNum5 = op.inFloat("Number 5"),
-    inNum6 = op.inFloat("Number 6"),
-    inNum7 = op.inFloat("Number 7"),
-    inNum8 = op.inFloat("Number 8"),
-    inReset = op.inTriggerButton("Reset");
-
-op.setUiAttrib({ "height": 150, "resizable": true });
-
-let buff = [];
-
-let max = -Number.MAX_VALUE;
-let min = Number.MAX_VALUE;
-
-inNum1.onLinkChanged =
-    inNum2.onLinkChanged =
-    inNum3.onLinkChanged =
-    inNum4.onLinkChanged =
-    inNum5.onLinkChanged =
-    inNum6.onLinkChanged =
-    inNum7.onLinkChanged =
-    inNum8.onLinkChanged =
-    inReset.onTriggered = () =>
-    {
-        max = -Number.MAX_VALUE;
-        min = Number.MAX_VALUE;
-        buff = [];
-    };
-
-op.renderVizLayer = (ctx, layer) =>
-{
-    const perf = CABLES.UI.uiProfiler.start("previewlayer graph");
-
-    const colors = [
-        "#00ffff",
-        "#ffff00",
-        "#ff00ff",
-        "#0000ff",
-        "#00ff00",
-        "#ff0000",
-        "#ffffff",
-        "#888888",
-    ];
-
-    ctx.fillStyle = "#222";
-    ctx.fillRect(layer.x, layer.y, layer.width, layer.height);
-
-    for (let p = 0; p < op.portsIn.length; p++)
-    {
-        if (!op.portsIn[p].isLinked()) continue;
-        const newVal = op.portsIn[p].get();
-
-        max = Math.max(op.portsIn[p].get(), max);
-        min = Math.min(op.portsIn[p].get(), min);
-
-        if (!buff[p]) buff[p] = [];
-        buff[p].push(newVal);
-        if (buff[p].length > 60) buff[p].shift();
-
-        const texSlot = 5;
-        const mulX = layer.width / 60;
-
-        ctx.lineWidth = 2;
-        ctx.strokeStyle = "#555555";
-
-        ctx.beginPath();
-        ctx.moveTo(layer.x, CABLES.map(0, min, max, layer.height, 0) + layer.y);
-        ctx.lineTo(layer.x + layer.width, CABLES.map(0, min, max, layer.height, 0) + layer.y);
-        ctx.stroke();
-
-        ctx.strokeStyle = colors[p];
-
-        ctx.beginPath();
-
-        for (let i = 0; i < buff[p].length; i++)
-        {
-            let y = buff[p][i];
-
-            y = CABLES.map(y, min, max, layer.height, 0);
-            y += layer.y;
-            if (i === 0)ctx.moveTo(layer.x, y);
-            else ctx.lineTo(layer.x + i * mulX, y);
-        }
-
-        ctx.stroke();
-    }
-
-    ctx.fillStyle = "#888";
-    ctx.fillText("max:" + Math.round(max * 100) / 100, layer.x + 10, layer.y + layer.height - 10);
-    ctx.fillText("min:" + Math.round(min * 100) / 100, layer.x + 10, layer.y + layer.height - 30);
-
-    perf.finish();
-};
-
-
-};
-
-Ops.Ui.VizGraph.prototype = new CABLES.Op();
-CABLES.OPS["13c54eb4-60ef-4b9c-8425-d52a431f5c87"]={f:Ops.Ui.VizGraph,objName:"Ops.Ui.VizGraph"};
 
 
 
@@ -5604,116 +5251,6 @@ inTriggerPort.onTriggered = function ()
 
 Ops.Trigger.TriggerExtender.prototype = new CABLES.Op();
 CABLES.OPS["7ef594f3-4907-47b0-a2d3-9854eda1679d"]={f:Ops.Trigger.TriggerExtender,objName:"Ops.Trigger.TriggerExtender"};
-
-
-
-
-// **************************************************************
-// 
-// Ops.Gl.TextureEffects.CheckerBoard_v2
-// 
-// **************************************************************
-
-Ops.Gl.TextureEffects.CheckerBoard_v2 = function()
-{
-CABLES.Op.apply(this,arguments);
-const op=this;
-const attachments={"checkerboard_frag":"IN vec2 texCoord;\nUNI sampler2D tex;\nUNI float numX;\nUNI float numY;\nUNI float amount;\nUNI float rotate;\nUNI float aspect;\n\n{{CGL.BLENDMODES3}}\n\n#define PI 3.14159265\n#define TAU (2.0*PI)\n\nvoid pR(inout vec2 p, float a)\n{\n\tp = cos(a)*p + sin(a)*vec2(p.y, -p.x);\n}\n\nvoid main()\n{\n    vec2 uv=texCoord-0.5;\n    pR(uv.xy,rotate * (TAU));\n    // uv = vec2(texCoord.x,texCoord.y*aspect)-0.5;\n\n    #ifdef CENTER\n        uv+=vec2(0.5,0.5);\n    #endif\n\n    float asp=1.0;\n    float nY=numY;\n    #ifdef SQUARE\n        asp=aspect;\n        nY=numX/aspect;\n\n    #endif\n\n    float total = floor(uv.x*numX-numX/2.0) +floor(uv.y/asp*nY-nY/2.0);\n    float r = mod(total,2.0);\n\n    vec4 col=vec4(r,r,r,1.0);\n    vec4 base=texture(tex,texCoord);\n    outColor=cgl_blendPixel(base,col,amount);\n}",};
-const render = op.inTrigger("render"),
-    blendMode = CGL.TextureEffect.AddBlendSelect(op, "Blend Mode", "normal"),
-    maskAlpha = CGL.TextureEffect.AddBlendAlphaMask(op),
-    amount = op.inValueSlider("Amount", 1),
-    inSquare = op.inBool("Square", true),
-    numX = op.inValue("Num X", 10),
-    numY = op.inValue("Num Y", 10),
-    inRotate = op.inValueSlider("Rotate", 0.0),
-    inCentered = op.inBool("Centered", true),
-    trigger = op.outTrigger("trigger");
-
-const cgl = op.patch.cgl;
-const shader = new CGL.Shader(cgl, "checkerboard");
-
-shader.setSource(shader.getDefaultVertexShader(), attachments.checkerboard_frag);
-
-const textureUniform = new CGL.Uniform(shader, "t", "tex", 0),
-    amountUniform = new CGL.Uniform(shader, "f", "amount", amount),
-    uniNumX = new CGL.Uniform(shader, "f", "numX", numX),
-    uniNumY = new CGL.Uniform(shader, "f", "numY", numY),
-    uniAspect = new CGL.Uniform(shader, "f", "aspect", 1),
-    rotateUniform = new CGL.Uniform(shader, "f", "rotate", inRotate);
-
-CGL.TextureEffect.setupBlending(op, shader, blendMode, amount, maskAlpha);
-
-inSquare.onChange =
-inCentered.onChange = updateDefines;
-
-updateDefines();
-
-function updateDefines()
-{
-    shader.toggleDefine("CENTER", inCentered.get());
-    shader.toggleDefine("SQUARE", inSquare.get());
-
-    numY.setUiAttribs({ "greyout": inSquare.get() });
-}
-
-render.onTriggered = function ()
-{
-    if (!CGL.TextureEffect.checkOpInEffect(op, 3)) return;
-
-    cgl.pushShader(shader);
-    cgl.currentTextureEffect.bind();
-
-    cgl.setTexture(0, cgl.currentTextureEffect.getCurrentSourceTexture().tex);
-
-    uniAspect.set(cgl.currentTextureEffect.aspectRatio);
-
-    cgl.currentTextureEffect.finish();
-    cgl.popShader();
-
-    trigger.trigger();
-};
-
-
-};
-
-Ops.Gl.TextureEffects.CheckerBoard_v2.prototype = new CABLES.Op();
-CABLES.OPS["7edfae81-f092-413f-a2a0-b109fdffa61d"]={f:Ops.Gl.TextureEffects.CheckerBoard_v2,objName:"Ops.Gl.TextureEffects.CheckerBoard_v2"};
-
-
-
-
-// **************************************************************
-// 
-// Ops.Math.Compare.LessThan
-// 
-// **************************************************************
-
-Ops.Math.Compare.LessThan = function()
-{
-CABLES.Op.apply(this,arguments);
-const op=this;
-const attachments={};
-const number1 = op.inValue("number1");
-const number2 = op.inValue("number2");
-const result = op.outBoolNum("result");
-
-op.setTitle("<");
-
-number1.onChange = exec;
-number2.onChange = exec;
-exec();
-
-function exec()
-{
-    result.set(number1.get() < number2.get());
-}
-
-
-};
-
-Ops.Math.Compare.LessThan.prototype = new CABLES.Op();
-CABLES.OPS["04fd113f-ade1-43fb-99fa-f8825f8814c0"]={f:Ops.Math.Compare.LessThan,objName:"Ops.Math.Compare.LessThan"};
 
 
 
@@ -10700,31 +10237,6 @@ CABLES.OPS["545e7225-73b0-4d40-923b-4b39940403a8"]={f:Ops.Debug.ConsoleLog,objNa
 
 // **************************************************************
 // 
-// Ops.Vars.VarGetString
-// 
-// **************************************************************
-
-Ops.Vars.VarGetString = function()
-{
-CABLES.Op.apply(this,arguments);
-const op=this;
-const attachments={};
-var val=op.outString("Value");
-op.varName=op.inValueSelect("Variable",[],"",true);
-
-new CABLES.VarGetOpWrapper(op,"string",op.varName,val);
-
-
-};
-
-Ops.Vars.VarGetString.prototype = new CABLES.Op();
-CABLES.OPS["3ad08cfc-bce6-4175-9746-fef2817a3b12"]={f:Ops.Vars.VarGetString,objName:"Ops.Vars.VarGetString"};
-
-
-
-
-// **************************************************************
-// 
 // Ops.Vars.VarSetArray_v2
 // 
 // **************************************************************
@@ -11409,6 +10921,41 @@ function clamp()
 
 Ops.Math.Clamp.prototype = new CABLES.Op();
 CABLES.OPS["cda1a98e-5e16-40bd-9b18-a67e9eaad5a1"]={f:Ops.Math.Clamp,objName:"Ops.Math.Clamp"};
+
+
+
+
+// **************************************************************
+// 
+// Ops.Math.Compare.LessThan
+// 
+// **************************************************************
+
+Ops.Math.Compare.LessThan = function()
+{
+CABLES.Op.apply(this,arguments);
+const op=this;
+const attachments={};
+const number1 = op.inValue("number1");
+const number2 = op.inValue("number2");
+const result = op.outBoolNum("result");
+
+op.setTitle("<");
+
+number1.onChange = exec;
+number2.onChange = exec;
+exec();
+
+function exec()
+{
+    result.set(number1.get() < number2.get());
+}
+
+
+};
+
+Ops.Math.Compare.LessThan.prototype = new CABLES.Op();
+CABLES.OPS["04fd113f-ade1-43fb-99fa-f8825f8814c0"]={f:Ops.Math.Compare.LessThan,objName:"Ops.Math.Compare.LessThan"};
 
 
 
@@ -12320,154 +11867,6 @@ exe.onTriggered = function ()
 
 Ops.Cables.CallBack_v2.prototype = new CABLES.Op();
 CABLES.OPS["cfc87cb1-a74b-482f-9fad-e1777cb7ffd4"]={f:Ops.Cables.CallBack_v2,objName:"Ops.Cables.CallBack_v2"};
-
-
-
-
-// **************************************************************
-// 
-// Ops.Math.Ceil
-// 
-// **************************************************************
-
-Ops.Math.Ceil = function()
-{
-CABLES.Op.apply(this,arguments);
-const op=this;
-const attachments={};
-const number1 = op.inValue("Number");
-const result = op.outNumber("Result");
-
-function exec()
-{
-    result.set(Math.ceil(number1.get()));
-}
-
-number1.onChange = exec;
-
-
-};
-
-Ops.Math.Ceil.prototype = new CABLES.Op();
-CABLES.OPS["15ba7aa9-b1c3-4b20-b6bf-b52a3ba8c8c5"]={f:Ops.Math.Ceil,objName:"Ops.Math.Ceil"};
-
-
-
-
-// **************************************************************
-// 
-// Ops.Array.ArrayFromNumbers
-// 
-// **************************************************************
-
-Ops.Array.ArrayFromNumbers = function()
-{
-CABLES.Op.apply(this,arguments);
-const op=this;
-const attachments={};
-const
-    inUpdate = op.inTrigger("Update"),
-    inLimit = op.inInt("Limit", 30),
-    inSlider = op.inBool("Slider", false),
-    next = op.outTrigger("Next"),
-    outArr = op.outArray("Array");
-
-const inPorts = [];
-for (let i = 0; i < 30; i++)
-{
-    const inp = op.inFloat("Index " + i, 0);
-    inPorts.push(inp);
-}
-
-const arr = [];
-let to = null;
-
-inUpdate.onTriggered = update;
-
-inSlider.onChange = () =>
-{
-    const l = inLimit.get();
-
-    for (let i = 0; i < inPorts.length; i++)
-        if (inSlider.get()) inPorts[i].setUiAttribs({ "display": "range" });
-        else inPorts[i].setUiAttribs({ "display": null });
-
-    op.refreshParams();
-};
-
-inLimit.onChange = () =>
-{
-    clearTimeout(to);
-
-    to = setTimeout(() =>
-    {
-        const l = inLimit.get();
-        for (let i = 0; i < inPorts.length; i++)
-        {
-            inPorts[i].setUiAttribs({ "greyout": i >= l });
-        }
-    }, 300);
-};
-
-function update()
-{
-    const l = Math.max(0, Math.ceil(Math.min(inLimit.get(), inPorts.length)));
-    arr.length = l;
-    for (let i = 0; i < l; i++)
-    {
-        arr[i] = inPorts[i].get();
-    }
-
-    outArr.set(null);
-    outArr.set(arr);
-    next.trigger();
-}
-
-
-};
-
-Ops.Array.ArrayFromNumbers.prototype = new CABLES.Op();
-CABLES.OPS["fb698158-3cf8-49d6-805e-6ea38fdab8c1"]={f:Ops.Array.ArrayFromNumbers,objName:"Ops.Array.ArrayFromNumbers"};
-
-
-
-
-// **************************************************************
-// 
-// Ops.Array.ArrayGetString
-// 
-// **************************************************************
-
-Ops.Array.ArrayGetString = function()
-{
-CABLES.Op.apply(this,arguments);
-const op=this;
-const attachments={};
-const
-    array = op.inArray("array"),
-    index = op.inValueInt("index"),
-    result = op.outString("result");
-
-array.ignoreValueSerialize = true;
-
-index.onChange = update;
-
-array.onChange = function ()
-{
-    update();
-};
-
-function update()
-{
-    const arr = array.get();
-    if (arr) result.set(arr[index.get()]);
-}
-
-
-};
-
-Ops.Array.ArrayGetString.prototype = new CABLES.Op();
-CABLES.OPS["be8f16c0-0c8a-48a2-a92b-45dbf88c76c1"]={f:Ops.Array.ArrayGetString,objName:"Ops.Array.ArrayGetString"};
 
 
 
@@ -14248,6 +13647,747 @@ function update()
 
 Ops.String.FreezeString.prototype = new CABLES.Op();
 CABLES.OPS["9ae2598f-8b5a-4749-aff3-a507c9957225"]={f:Ops.String.FreezeString,objName:"Ops.String.FreezeString"};
+
+
+
+
+// **************************************************************
+// 
+// Ops.Vars.VarGetString
+// 
+// **************************************************************
+
+Ops.Vars.VarGetString = function()
+{
+CABLES.Op.apply(this,arguments);
+const op=this;
+const attachments={};
+var val=op.outString("Value");
+op.varName=op.inValueSelect("Variable",[],"",true);
+
+new CABLES.VarGetOpWrapper(op,"string",op.varName,val);
+
+
+};
+
+Ops.Vars.VarGetString.prototype = new CABLES.Op();
+CABLES.OPS["3ad08cfc-bce6-4175-9746-fef2817a3b12"]={f:Ops.Vars.VarGetString,objName:"Ops.Vars.VarGetString"};
+
+
+
+
+// **************************************************************
+// 
+// Ops.Boolean.IfTrueThen_v2
+// 
+// **************************************************************
+
+Ops.Boolean.IfTrueThen_v2 = function()
+{
+CABLES.Op.apply(this,arguments);
+const op=this;
+const attachments={};
+const
+    exe = op.inTrigger("exe"),
+    boolean = op.inValueBool("boolean", false),
+    triggerThen = op.outTrigger("then"),
+    triggerElse = op.outTrigger("else");
+
+exe.onTriggered = exec;
+
+let b = false;
+
+boolean.onChange = () =>
+{
+    b = boolean.get();
+};
+
+function exec()
+{
+    if (b) triggerThen.trigger();
+    else triggerElse.trigger();
+}
+
+
+};
+
+Ops.Boolean.IfTrueThen_v2.prototype = new CABLES.Op();
+CABLES.OPS["9549e2ed-a544-4d33-a672-05c7854ccf5d"]={f:Ops.Boolean.IfTrueThen_v2,objName:"Ops.Boolean.IfTrueThen_v2"};
+
+
+
+
+// **************************************************************
+// 
+// Ops.Gl.TextureEffects.Noise.PixelNoise_v3
+// 
+// **************************************************************
+
+Ops.Gl.TextureEffects.Noise.PixelNoise_v3 = function()
+{
+CABLES.Op.apply(this,arguments);
+const op=this;
+const attachments={"pixelnoise2_frag":"IN vec2 texCoord;\nUNI sampler2D tex;\nUNI float amount;\nUNI float numX;\nUNI float numY;\nUNI float addX;\nUNI float addY;\nUNI float addZ;\nUNI float seed2;\nUNI float minIn;\nUNI float maxIn;\n\nfloat random(vec2 co)\n{\n    float r=fract(sin(dot(co.xy ,vec2(12.9898,78.233))) * (5.711+(mod(addZ+5711.210,57111.0))));\n\n    #ifdef LOOP\n        r=abs(r-0.5)*2.0;\n    #endif\n\n    return r;\n}\n\n{{CGL.BLENDMODES3}}\n\nvoid main()\n{\n    vec2 seed=vec2(0.0);\n\n    #ifndef CENTER\n        seed=vec2(floor( texCoord.x*numX+addX),floor( texCoord.y*numY+addY));\n    #endif\n    #ifdef CENTER\n        seed=vec2(floor( (texCoord.x-0.5)*numX+addX),floor( (texCoord.y-0.5)*numY+addY));\n    #endif\n\n    float r,g,b;\n\n    #ifndef RGB\n        r=g=b=random( seed + 0.5711 + seed2 );\n    #endif\n\n    #ifdef RGB\n        r=random( seed+0.5711 + seed2);\n        g=random( seed+0.5712 + seed2);\n        b=random( seed+0.5713 + seed2);\n    #endif\n\n    vec4 rnd = clamp( vec4( r,g,b,1.0 ),vec4(minIn), vec4(maxIn) );\n\n    vec4 base=texture(tex,texCoord);\n\n    outColor=cgl_blendPixel(base,rnd,amount);\n\n}",};
+const
+    render = op.inTrigger("Render"),
+    blendMode = CGL.TextureEffect.AddBlendSelect(op, "Blend Mode", "normal"),
+    maskAlpha = CGL.TextureEffect.AddBlendAlphaMask(op),
+    amount = op.inValueSlider("Amount", 1),
+    inLoop = op.inValueBool("Loop", false),
+    inRGB = op.inValueBool("RGB", false),
+    minValue = op.inValue("Minimum value", 0),
+    maxValue = op.inValue("Maximum value", 1),
+    numX = op.inValue("Num X", 10),
+    numY = op.inValue("Num Y", 10),
+    addX = op.inValue("X", 0),
+    addY = op.inValue("Y", 0),
+    addZ = op.inValue("Z", 0),
+    seed2 = op.inValue("Seed", 0),
+    inCentered = op.inBool("Centered", false),
+    trigger = op.outTrigger("Next");
+
+op.setPortGroup("Look", [inRGB, inLoop, minValue, maxValue]);
+op.setPortGroup("Position", [addX, addY, addZ]);
+op.setPortGroup("Scaling", [numX, numY]);
+
+const cgl = op.patch.cgl;
+const shader = new CGL.Shader(cgl, op.name);
+shader.setSource(shader.getDefaultVertexShader(), attachments.pixelnoise2_frag);
+
+const
+    amountUniform = new CGL.Uniform(shader, "f", "amount", amount),
+    timeUniform = new CGL.Uniform(shader, "f", "time", 1.0),
+    textureUniform = new CGL.Uniform(shader, "t", "tex", 0),
+    uni_numX = new CGL.Uniform(shader, "f", "numX", numX),
+    uni_numY = new CGL.Uniform(shader, "f", "numY", numY),
+    uni_addX = new CGL.Uniform(shader, "f", "addX", addX),
+    uni_addY = new CGL.Uniform(shader, "f", "addY", addY),
+    uni_addZ = new CGL.Uniform(shader, "f", "addZ", addZ),
+    uni_seed = new CGL.Uniform(shader, "f", "seed2", seed2),
+    uni_minValue = new CGL.Uniform(shader, "f", "minIn", minValue),
+    uni_maxValue = new CGL.Uniform(shader, "f", "maxIn", maxValue);
+
+inLoop.onChange = function ()
+{
+    if (inLoop.get())shader.define("LOOP");
+    else shader.removeDefine("LOOP");
+};
+
+inRGB.onChange = function ()
+{
+    if (inRGB.get())shader.define("RGB");
+    else shader.removeDefine("RGB");
+};
+
+inCentered.onChange = function ()
+{
+    shader.toggleDefine("CENTER", inCentered.get());
+};
+
+CGL.TextureEffect.setupBlending(op, shader, blendMode, amount, maskAlpha);
+
+render.onTriggered = function ()
+{
+    if (!CGL.TextureEffect.checkOpInEffect(op, 3)) return;
+
+    cgl.pushShader(shader);
+    cgl.currentTextureEffect.bind();
+
+    cgl.setTexture(0, cgl.currentTextureEffect.getCurrentSourceTexture().tex);
+
+    cgl.currentTextureEffect.finish();
+    cgl.popShader();
+
+    trigger.trigger();
+};
+
+
+};
+
+Ops.Gl.TextureEffects.Noise.PixelNoise_v3.prototype = new CABLES.Op();
+CABLES.OPS["01ad08b6-dea4-4765-984c-3885c9c6520f"]={f:Ops.Gl.TextureEffects.Noise.PixelNoise_v3,objName:"Ops.Gl.TextureEffects.Noise.PixelNoise_v3"};
+
+
+
+
+// **************************************************************
+// 
+// Ops.Gl.TextureEffects.Posterize_v2
+// 
+// **************************************************************
+
+Ops.Gl.TextureEffects.Posterize_v2 = function()
+{
+CABLES.Op.apply(this,arguments);
+const op=this;
+const attachments={"posterize_frag":"UNI sampler2D tex;\nIN vec2 texCoord;\nUNI float levels;\nUNI float amount;\n\n{{CGL.BLENDMODES3}}\n\nvoid main(void)\n{\n    vec3 srcPixel = texture(tex, texCoord  ).rgb;\n    vec3 amountPerLevel = vec3(1.0/levels);\n    vec3 numOfLevels = floor(srcPixel/amountPerLevel);\n    vec3 col = numOfLevels * (vec3(1.0) / (vec3(levels) - vec3(1.0)));\n\n    vec4 base=texture(tex,texCoord);\n    outColor= cgl_blendPixel(base,vec4(col,base.a),amount);\n}\n\n",};
+const
+    render = op.inTrigger("Render"),
+    blendMode = CGL.TextureEffect.AddBlendSelect(op, "Blend Mode", "normal"),
+    amount = op.inValueSlider("Amount", 1),
+    levels = op.inValue("levels", 2),
+    trigger = op.outTrigger("Trigger");
+
+const
+    cgl = op.patch.cgl,
+    shader = new CGL.Shader(cgl, op.name);
+
+shader.setSource(shader.getDefaultVertexShader(), attachments.posterize_frag);
+
+const
+    textureUniform = new CGL.Uniform(shader, "t", "tex", 0),
+    levelsUniform = new CGL.Uniform(shader, "f", "levels", levels),
+    uniWidth = new CGL.Uniform(shader, "f", "texWidth", 128),
+    uniHeight = new CGL.Uniform(shader, "f", "texHeight", 128),
+    uniAmount = new CGL.Uniform(shader, "f", "amount", amount);
+
+CGL.TextureEffect.setupBlending(op, shader, blendMode, amount);
+
+render.onTriggered = function ()
+{
+    if (!CGL.TextureEffect.checkOpInEffect(op, 3)) return;
+
+    cgl.pushShader(shader);
+    cgl.currentTextureEffect.bind();
+
+    uniWidth.setValue(cgl.currentTextureEffect.getCurrentSourceTexture().width);
+    uniHeight.setValue(cgl.currentTextureEffect.getCurrentSourceTexture().height);
+
+    cgl.setTexture(0, cgl.currentTextureEffect.getCurrentSourceTexture().tex);
+
+    cgl.currentTextureEffect.finish();
+    cgl.popShader();
+
+    trigger.trigger();
+};
+
+
+};
+
+Ops.Gl.TextureEffects.Posterize_v2.prototype = new CABLES.Op();
+CABLES.OPS["19703953-7984-4334-af72-0991425b4850"]={f:Ops.Gl.TextureEffects.Posterize_v2,objName:"Ops.Gl.TextureEffects.Posterize_v2"};
+
+
+
+
+// **************************************************************
+// 
+// Ops.Array.ArrayGetString
+// 
+// **************************************************************
+
+Ops.Array.ArrayGetString = function()
+{
+CABLES.Op.apply(this,arguments);
+const op=this;
+const attachments={};
+const
+    array = op.inArray("array"),
+    index = op.inValueInt("index"),
+    result = op.outString("result");
+
+array.ignoreValueSerialize = true;
+
+index.onChange = update;
+
+array.onChange = function ()
+{
+    update();
+};
+
+function update()
+{
+    const arr = array.get();
+    if (arr) result.set(arr[index.get()]);
+}
+
+
+};
+
+Ops.Array.ArrayGetString.prototype = new CABLES.Op();
+CABLES.OPS["be8f16c0-0c8a-48a2-a92b-45dbf88c76c1"]={f:Ops.Array.ArrayGetString,objName:"Ops.Array.ArrayGetString"};
+
+
+
+
+// **************************************************************
+// 
+// Ops.Array.ArrayToString_v3
+// 
+// **************************************************************
+
+Ops.Array.ArrayToString_v3 = function()
+{
+CABLES.Op.apply(this,arguments);
+const op=this;
+const attachments={};
+const
+    inArr=op.inArray("Array"),
+    inSeperator=op.inString("Seperator",","),
+    inNewLine=op.inValueBool("New Line"),
+    outStr=op.outString("Result");
+
+inArr.onChange=
+    outStr.onChange=
+    inSeperator.onChange=
+    inNewLine.onChange=exec;
+
+
+function exec()
+{
+    var arr=inArr.get();
+    var result='';
+
+    var sep=inSeperator.get();
+    if(inNewLine.get())sep+='\n';
+
+    if(arr && arr.join)
+    {
+        result=arr.join(sep);
+    }
+
+    outStr.set(result);
+}
+
+};
+
+Ops.Array.ArrayToString_v3.prototype = new CABLES.Op();
+CABLES.OPS["7b539bb3-8e86-4367-9e00-a637d3cfd87a"]={f:Ops.Array.ArrayToString_v3,objName:"Ops.Array.ArrayToString_v3"};
+
+
+
+
+// **************************************************************
+// 
+// Ops.Patch.Pw01AEC.ForceCanvasSize_Custom
+// 
+// **************************************************************
+
+Ops.Patch.Pw01AEC.ForceCanvasSize_Custom = function()
+{
+CABLES.Op.apply(this,arguments);
+const op=this;
+const attachments={};
+const
+    inTrigger = op.inTrigger("Trigger"),
+    inActive = op.inBool("Active", true),
+    inWhat = op.inSwitch("Force", ["Resolution", "Aspect Ratio"], "Resolution"),
+    inCenter = op.inBool("Center In Parent", true),
+    inScaleFit = op.inBool("Scale to fit Parent", false),
+    inWidth = op.inInt("Set Width", 300),
+    inHeight = op.inInt("Set Height", 200),
+    inPresets = op.inDropDown("Aspect Ratio", ["Custom", "21:9", "2:1", "16:9", "16:10", "4:3", "1:1", "9:16", "1:2", "iPhoneXr Vert"], "16:9"),
+    inRatio = op.inFloat("Ratio", 0),
+    inStretch = op.inDropDown("Fill Parent", ["Auto", "Width", "Height", "Both"], "Auto"),
+    next = op.outTrigger("Next"),
+    outWidth = op.outNumber("Width"),
+    outHeight = op.outNumber("Height"),
+    outMarginLeft = op.outNumber("Margin Left"),
+    outMarginTop = op.outNumber("Margin Top");
+
+op.setPortGroup("Size", [inWidth, inHeight]);
+op.setPortGroup("Proportions", [inRatio, inStretch, inPresets]);
+
+let align = 0;
+const ALIGN_NONE = 0;
+const ALIGN_WIDTH = 1;
+const ALIGN_HEIGHT = 2;
+const ALIGN_BOTH = 3;
+const ALIGN_AUTO = 4;
+
+inStretch.onChange = updateUi;
+inWhat.onChange = updateMethod;
+inCenter.onChange =
+    inTrigger.onLinkChanged = removeStyles;
+
+inPresets.onChange = updateRatioPreset;
+
+const cgl = op.patch.cgl;
+
+if (window.getComputedStyle(cgl.canvas).position === "absolute")
+{
+    cgl.canvas.style.position = "initial";
+    op.warn("[cables forceCanvasSize] - canvas was positioned absolute, not compatible with Ops.Gl.ForceCanvasSize");
+}
+
+updateUi();
+
+function updateMethod()
+{
+    if (inWhat.get() == "Aspect Ratio")
+    {
+        inRatio.set(100);
+        updateRatioPreset();
+    }
+    updateUi();
+}
+
+function updateRatioPreset()
+{
+    const pr = inPresets.get();
+    if (pr == "Custom") return;
+    else if (pr == "16:9")inRatio.set(16 / 9);
+    else if (pr == "4:3")inRatio.set(4 / 3);
+    else if (pr == "16:10")inRatio.set(16 / 10);
+    else if (pr == "21:9")inRatio.set(21 / 9);
+    else if (pr == "2:1")inRatio.set(2);
+    else if (pr == "1:1")inRatio.set(1);
+    else if (pr == "9:16")inRatio.set(9 / 16);
+    else if (pr == "1:2")inRatio.set(0.5);
+    else if (pr == "iPhoneXr Vert")inRatio.set(9 / 19.5);
+}
+
+inRatio.onChange = () =>
+{
+    removeStyles();
+};
+
+inActive.onChange = function ()
+{
+    if (!inActive.get())removeStyles();
+};
+
+function updateUi()
+{
+    const forceRes = inWhat.get() == "Resolution";
+    inWidth.setUiAttribs({ "greyout": !forceRes });
+    inHeight.setUiAttribs({ "greyout": !forceRes });
+
+    inPresets.setUiAttribs({ "greyout": forceRes });
+    inStretch.setUiAttribs({ "greyout": forceRes });
+    inRatio.setUiAttribs({ "greyout": forceRes });
+
+    align = 0;
+
+    if (!forceRes)
+    {
+        const strAlign = inStretch.get();
+        if (strAlign == "Width")align = ALIGN_WIDTH;
+        else if (strAlign == "Height")align = ALIGN_HEIGHT;
+        else if (strAlign == "Both")align = ALIGN_BOTH;
+        else if (strAlign == "Auto")align = ALIGN_AUTO;
+    }
+}
+
+function removeStyles()
+{
+    cgl.canvas.style["margin-top"] = "";
+    cgl.canvas.style["margin-left"] = "";
+
+    outMarginLeft.set(0);
+    outMarginTop.set(0);
+
+    const rect = cgl.canvas.parentNode.getBoundingClientRect();
+    cgl.setSize(rect.width, rect.height);
+}
+
+inTrigger.onTriggered = function ()
+{
+    if (!inActive.get()) return next.trigger();
+
+    let w = inWidth.get();
+    let h = inHeight.get();
+
+    let clientRect = cgl.canvas.parentNode.getBoundingClientRect();
+    if (clientRect.height == 0)
+    {
+        cgl.canvas.parentNode.style.height = "100%";
+        clientRect = cgl.canvas.parentNode.getBoundingClientRect();
+    }
+    if (clientRect.width == 0)
+    {
+        cgl.canvas.parentNode.style.width = "100%";
+        clientRect = cgl.canvas.parentNode.getBoundingClientRect();
+    }
+
+    if (align == ALIGN_WIDTH)
+    {
+        w = clientRect.width;
+        h = w * 1 / inRatio.get();
+    }
+    else if (align == ALIGN_HEIGHT)
+    {
+        h = clientRect.height;
+        w = h * inRatio.get();
+    }
+    else if (align == ALIGN_AUTO)
+    {
+        const rect = clientRect;
+
+        h = rect.height;
+        w = h * inRatio.get();
+
+        if (w > rect.width)
+        {
+            w = rect.width;
+            h = w * 1 / inRatio.get();
+        }
+    }
+    else if (align == ALIGN_BOTH)
+    {
+        const rect = clientRect;
+        h = rect.height;
+        w = h * inRatio.get();
+
+        if (w < rect.width)
+        {
+            w = rect.width;
+            h = w * 1 / inRatio.get();
+        }
+    }
+
+    w = Math.ceil(w);
+    h = Math.ceil(h);
+
+    if (inCenter.get())
+    {
+        const rect = clientRect;
+
+        const t = (rect.height - h) / 2;
+        const l = (rect.width - w) / 2;
+
+        outMarginLeft.set(l);
+        outMarginTop.set(t);
+
+        cgl.canvas.style["margin-top"] = t + "px";
+        cgl.canvas.style["margin-left"] = l + "px";
+    }
+    else
+    {
+        cgl.canvas.style["margin-top"] = "0";
+        cgl.canvas.style["margin-left"] = "0";
+
+        outMarginLeft.set(0);
+        outMarginTop.set(0);
+    }
+
+    if (inScaleFit.get())
+    {
+        const rect = clientRect;
+        const scX = rect.width / inWidth.get();
+        const scY = rect.height / inHeight.get();
+        cgl.canvas.style.transform = "scale(" + Math.min(scX, scY) + ")";
+    }
+    else
+    {
+        //cgl.canvas.style.transform = "scale(1)";
+    }
+
+    if (cgl.canvas.width / cgl.pixelDensity != w || cgl.canvas.height / cgl.pixelDensity != h)
+    {
+        outWidth.set(w);
+        outHeight.set(h);
+        cgl.setSize(w, h);
+    }
+    // else
+    next.trigger();
+};
+
+
+};
+
+Ops.Patch.Pw01AEC.ForceCanvasSize_Custom.prototype = new CABLES.Op();
+CABLES.OPS["3af056c8-9d23-4305-ab36-d9bf5391fd7a"]={f:Ops.Patch.Pw01AEC.ForceCanvasSize_Custom,objName:"Ops.Patch.Pw01AEC.ForceCanvasSize_Custom"};
+
+
+
+
+// **************************************************************
+// 
+// Ops.Math.Ceil
+// 
+// **************************************************************
+
+Ops.Math.Ceil = function()
+{
+CABLES.Op.apply(this,arguments);
+const op=this;
+const attachments={};
+const number1 = op.inValue("Number");
+const result = op.outNumber("Result");
+
+function exec()
+{
+    result.set(Math.ceil(number1.get()));
+}
+
+number1.onChange = exec;
+
+
+};
+
+Ops.Math.Ceil.prototype = new CABLES.Op();
+CABLES.OPS["15ba7aa9-b1c3-4b20-b6bf-b52a3ba8c8c5"]={f:Ops.Math.Ceil,objName:"Ops.Math.Ceil"};
+
+
+
+
+// **************************************************************
+// 
+// Ops.Patch.Pw01AEC.GetScaleNumOrFit
+// 
+// **************************************************************
+
+Ops.Patch.Pw01AEC.GetScaleNumOrFit = function()
+{
+CABLES.Op.apply(this,arguments);
+const op=this;
+const attachments={};
+const exePort = op.inTriggerButton("Execute");
+const paramValuePort = op.inString("URL Param String");
+const nextTriggerPort = op.outTrigger("Scale Set Trigger");
+const valueOutPort = op.outNumber("Scale Out");
+const fitTriggerPort = op.outTrigger("Fit Trigger");
+
+// op.onLoad =
+// op.onInit =
+// switchPort.onChange = updateIndex;
+
+exePort.onTriggered = function ()
+{
+    let paramValue = paramValuePort.get();
+    if (!(typeof paramValue === 'string' || paramValue instanceof String)) return
+
+    let scaleNum = parseFloat(paramValue);
+
+    console.log(scaleNum, paramValue);
+
+    if (!isNaN(scaleNum))
+    {
+        valueOutPort.set(scaleNum);
+        nextTriggerPort.trigger();
+        return;
+    }
+
+    if (paramValue === "fit")
+    {
+        fitTriggerPort.trigger();
+    }
+};
+
+
+};
+
+Ops.Patch.Pw01AEC.GetScaleNumOrFit.prototype = new CABLES.Op();
+CABLES.OPS["bc80b842-5018-4570-a26d-071620efe66c"]={f:Ops.Patch.Pw01AEC.GetScaleNumOrFit,objName:"Ops.Patch.Pw01AEC.GetScaleNumOrFit"};
+
+
+
+
+// **************************************************************
+// 
+// Ops.Ui.VizGraph
+// 
+// **************************************************************
+
+Ops.Ui.VizGraph = function()
+{
+CABLES.Op.apply(this,arguments);
+const op=this;
+const attachments={};
+const
+    inNum1 = op.inFloat("Number 1"),
+    inNum2 = op.inFloat("Number 2"),
+    inNum3 = op.inFloat("Number 3"),
+    inNum4 = op.inFloat("Number 4"),
+    inNum5 = op.inFloat("Number 5"),
+    inNum6 = op.inFloat("Number 6"),
+    inNum7 = op.inFloat("Number 7"),
+    inNum8 = op.inFloat("Number 8"),
+    inReset = op.inTriggerButton("Reset");
+
+op.setUiAttrib({ "height": 150, "resizable": true });
+
+let buff = [];
+
+let max = -Number.MAX_VALUE;
+let min = Number.MAX_VALUE;
+
+inNum1.onLinkChanged =
+    inNum2.onLinkChanged =
+    inNum3.onLinkChanged =
+    inNum4.onLinkChanged =
+    inNum5.onLinkChanged =
+    inNum6.onLinkChanged =
+    inNum7.onLinkChanged =
+    inNum8.onLinkChanged =
+    inReset.onTriggered = () =>
+    {
+        max = -Number.MAX_VALUE;
+        min = Number.MAX_VALUE;
+        buff = [];
+    };
+
+op.renderVizLayer = (ctx, layer) =>
+{
+    const perf = CABLES.UI.uiProfiler.start("previewlayer graph");
+
+    const colors = [
+        "#00ffff",
+        "#ffff00",
+        "#ff00ff",
+        "#0000ff",
+        "#00ff00",
+        "#ff0000",
+        "#ffffff",
+        "#888888",
+    ];
+
+    ctx.fillStyle = "#222";
+    ctx.fillRect(layer.x, layer.y, layer.width, layer.height);
+
+    for (let p = 0; p < op.portsIn.length; p++)
+    {
+        if (!op.portsIn[p].isLinked()) continue;
+        const newVal = op.portsIn[p].get();
+
+        max = Math.max(op.portsIn[p].get(), max);
+        min = Math.min(op.portsIn[p].get(), min);
+
+        if (!buff[p]) buff[p] = [];
+        buff[p].push(newVal);
+        if (buff[p].length > 60) buff[p].shift();
+
+        const texSlot = 5;
+        const mulX = layer.width / 60;
+
+        ctx.lineWidth = 2;
+        ctx.strokeStyle = "#555555";
+
+        ctx.beginPath();
+        ctx.moveTo(layer.x, CABLES.map(0, min, max, layer.height, 0) + layer.y);
+        ctx.lineTo(layer.x + layer.width, CABLES.map(0, min, max, layer.height, 0) + layer.y);
+        ctx.stroke();
+
+        ctx.strokeStyle = colors[p];
+
+        ctx.beginPath();
+
+        for (let i = 0; i < buff[p].length; i++)
+        {
+            let y = buff[p][i];
+
+            y = CABLES.map(y, min, max, layer.height, 0);
+            y += layer.y;
+            if (i === 0)ctx.moveTo(layer.x, y);
+            else ctx.lineTo(layer.x + i * mulX, y);
+        }
+
+        ctx.stroke();
+    }
+
+    ctx.fillStyle = "#888";
+    ctx.fillText("max:" + Math.round(max * 100) / 100, layer.x + 10, layer.y + layer.height - 10);
+    ctx.fillText("min:" + Math.round(min * 100) / 100, layer.x + 10, layer.y + layer.height - 30);
+
+    perf.finish();
+};
+
+
+};
+
+Ops.Ui.VizGraph.prototype = new CABLES.Op();
+CABLES.OPS["13c54eb4-60ef-4b9c-8425-d52a431f5c87"]={f:Ops.Ui.VizGraph,objName:"Ops.Ui.VizGraph"};
 
 
 
