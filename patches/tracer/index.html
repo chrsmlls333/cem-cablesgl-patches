@@ -655,6 +655,7 @@
     <script type="text/javascript"  src="js/whammy.js"></script>
     <script type="text/javascript"  src="js/jszip.js"></script>
     <script type="text/javascript"  src="js/moment.js"></script>
+    <script type="text/javascript"  src="js/assets/64c6ccd0c033c0b9f60ff990/docs.opencv.org_4.8.0_opencv.js"></script>
     <script type="text/javascript"  src="js/hammer.js"></script>
 
     <script type="text/javascript" src="js/libs.core.min.js"></script>
@@ -684,17 +685,13 @@
             if (fxContextVar) fxContextVar.setValue($fx.context)
         }
 
+        function patchFinishedLoading(patch) {
+            // The patch is ready now, all assets have been loaded
+        }
+
         function showError(errId, errMsg) {
             // handle critical errors here if needed
             console.error(errId, errMsg)
-        }
-
-        function patchInitialized(patch) {
-            // You can now access the patch object (patch), register variable watchers and so on
-        }
-
-        function patchFinishedLoading(patch) {
-            // The patch is ready now, all assets have been loaded
         }
 
         document.addEventListener("CABLES.jsLoaded", function (event) {
