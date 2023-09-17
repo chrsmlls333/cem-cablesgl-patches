@@ -15,7 +15,6 @@ Ops.Time=Ops.Time || {};
 Ops.User=Ops.User || {};
 Ops.Vars=Ops.Vars || {};
 Ops.Array=Ops.Array || {};
-Ops.Debug=Ops.Debug || {};
 Ops.Patch=Ops.Patch || {};
 Ops.Value=Ops.Value || {};
 Ops.Cables=Ops.Cables || {};
@@ -417,7 +416,7 @@ function clean()
 
                 removeLinks.push(triggers[i].links[j]);
                 const otherPort = triggers[i].links[j].getOtherPort(triggers[i]);
-                op.patch.link(op, "trigger " + count, otherPort.parent, otherPort.name);
+                op.patch.link(op, "trigger " + count, otherPort.op, otherPort.name);
                 count++;
             }
 
@@ -506,12 +505,13 @@ function initEffect()
     if (effect)effect.delete();
     if (tex)tex.delete();
 
-    effect = new CGL.TextureEffect(cgl, { "isFloatingPointTexture": getFloatingPoint() });
+    effect = new CGL.TextureEffect(cgl, { "isFloatingPointTexture": CGL.Texture.isPixelFormatFloat(inPixel.get()) });
 
     tex = new CGL.Texture(cgl,
         {
             "name": "image_compose_v2_" + op.id,
-            "isFloatingPointTexture": getFloatingPoint(),
+            "isFloatingPointTexture": CGL.Texture.isPixelFormatFloat(inPixel.get()),
+            "pixelFormat": inPixel.get(),
             "filter": getFilter(),
             "wrap": getWrap(),
             "width": getWidth(),
@@ -544,12 +544,6 @@ function getWrap()
     else if (inWrap.get() == "clamp to edge") return CGL.Texture.WRAP_CLAMP_TO_EDGE;
 }
 
-function getFloatingPoint()
-{
-    isFloatTex = inPixel.get() == CGL.Texture.PFORMATSTR_RGBA32F;
-    return isFloatTex;
-}
-
 function getWidth()
 {
     if (inTex.get() && inSize.get() == "Auto") return inTex.get().width;
@@ -574,7 +568,8 @@ function updateResolution()
     if ((
         getWidth() != tex.width ||
         getHeight() != tex.height ||
-        tex.isFloatingPoint() != getFloatingPoint() ||
+        tex.isFloatingPoint() != CGL.Texture.isPixelFormatFloat(inPixel.get()) ||
+        tex.pixelFormat != inPixel.get() ||
         tex.filter != getFilter() ||
         tex.wrap != getWrap()
     ) && (getWidth() !== 0 && getHeight() !== 0))
@@ -630,7 +625,7 @@ function updateUi()
     height.setUiAttribs({ "hideParam": inSize.get() != "Manual" });
 
     if (tex)
-        if (getFloatingPoint() && getFilter() == CGL.Texture.FILTER_MIPMAP) op.setUiError("fpmipmap", "Don't use mipmap and 32bit at the same time, many systems do not support this.");
+        if (CGL.Texture.isPixelFormatFloat(inPixel.get()) && getFilter() == CGL.Texture.FILTER_MIPMAP) op.setUiError("fpmipmap", "Don't use mipmap and 32bit at the same time, many systems do not support this.");
         else op.setUiError("fpmipmap", null);
 
     updateResolutionInfo();
@@ -1915,68 +1910,6 @@ CABLES.OPS["2617b407-60a0-4ff6-b4a7-18136cfa7817"]={f:Ops.Math.MapRange,objName:
 
 // **************************************************************
 // 
-// Ops.TimeLine.TimeLinePlayer
-// 
-// **************************************************************
-
-Ops.TimeLine.TimeLinePlayer = function()
-{
-CABLES.Op.apply(this,arguments);
-const op=this;
-const attachments={};
-const
-    play = op.inTriggerButton("Play"),
-    pause = op.inTriggerButton("Pause"),
-    rewind = op.inTriggerButton("rewind"),
-    setTime = op.inFloat("Set current time", 0),
-
-    outPlayTrigger = op.outTrigger("play trigger"),
-    outPauseTrigger = op.outTrigger("pause trigger"),
-    outrewindTrigger = op.outTrigger("rewind trigger"),
-    isPlaying = op.outBool("is Playing"),
-    outSetTimeTrigger = op.outNumber("set time (seconds)"),
-    currentTime = op.outNumber("current time"),
-    currentFrame = op.outNumber("current frame");
-
-play.onTriggered = function ()
-{
-    op.patch.timer.play();
-
-    op.patch.timer.setTime(setTime.get());
-    outSetTimeTrigger.set(setTime.get());
-    outPlayTrigger.trigger();
-};
-
-pause.onTriggered = function ()
-{
-    op.patch.timer.pause();
-    outPauseTrigger.trigger();
-};
-
-op.onAnimFrame = function (time)
-{
-    currentFrame.set(Math.round(time * 30.0));
-    currentTime.set(time);
-    isPlaying.set(op.patch.timer.isPlaying());
-};
-
-rewind.onTriggered = function ()
-{
-    op.patch.timer.setTime(0);
-    outrewindTrigger.trigger();
-};
-
-
-};
-
-Ops.TimeLine.TimeLinePlayer.prototype = new CABLES.Op();
-CABLES.OPS["97e57613-6a51-41cf-9de5-fe3dbc2c69b2"]={f:Ops.TimeLine.TimeLinePlayer,objName:"Ops.TimeLine.TimeLinePlayer"};
-
-
-
-
-// **************************************************************
-// 
 // Ops.Vars.VarGetNumber_v2
 // 
 // **************************************************************
@@ -2485,11 +2418,11 @@ CABLES.OPS["a165fc89-a35b-4d39-8930-7345b098bd9d"]={f:Ops.Gl.Shader.CustomShader
 
 // **************************************************************
 // 
-// Ops.Gl.Shader.Shader2Texture
+// Ops.Gl.Shader.ShaderToTexture
 // 
 // **************************************************************
 
-Ops.Gl.Shader.Shader2Texture = function()
+Ops.Gl.Shader.ShaderToTexture = function()
 {
 CABLES.Op.apply(this,arguments);
 const op=this;
@@ -2709,8 +2642,8 @@ exec.onTriggered = function ()
 
 };
 
-Ops.Gl.Shader.Shader2Texture.prototype = new CABLES.Op();
-CABLES.OPS["a3debb76-7d84-4548-9e7b-24891423dcce"]={f:Ops.Gl.Shader.Shader2Texture,objName:"Ops.Gl.Shader.Shader2Texture"};
+Ops.Gl.Shader.ShaderToTexture.prototype = new CABLES.Op();
+CABLES.OPS["a3debb76-7d84-4548-9e7b-24891423dcce"]={f:Ops.Gl.Shader.ShaderToTexture,objName:"Ops.Gl.Shader.ShaderToTexture"};
 
 
 
@@ -2767,7 +2700,7 @@ inTex.onChange = () =>
 
     let title = "";
 
-    if (inTex.get()) title = inTex.links[0].getOtherPort(inTex).name;
+    if (inTex.get() && inTex.links[0]) title = inTex.links[0].getOtherPort(inTex).name;
 
     op.setUiAttrib({ "extendTitle": title });
 };
@@ -2785,18 +2718,18 @@ op.renderVizLayer = (ctx, layer) =>
     const texSlotCubemap = texSlot + 1;
 
     const perf = CABLES.UI.uiProfiler.start("previewlayer texture");
-    const cgl = port.parent.patch.cgl;
+    const cgl = port.op.patch.cgl;
 
     if (!layer.useGl) return;
 
     if (!this._emptyCubemap) this._emptyCubemap = CGL.Texture.getEmptyCubemapTexture(cgl);
-    port.parent.patch.cgl.profileData.profileTexPreviews++;
+    port.op.patch.cgl.profileData.profileTexPreviews++;
 
     const portTex = port.get() || CGL.Texture.getEmptyTexture(cgl);
 
     if (!this._mesh)
     {
-        const geom = new CGL.Geometry("preview op rect");
+        const geom = new CGL.Geometry("vizTexture rect");
         geom.vertices = [1.0, 1.0, 0.0, -1.0, 1.0, 0.0, 1.0, -1.0, 0.0, -1.0, -1.0, 0.0];
         geom.texCoords = [
             1.0, 1.0,
@@ -2824,11 +2757,11 @@ op.renderVizLayer = (ctx, layer) =>
 
     cgl.pushPMatrix();
     const sizeTex = [portTex.width, portTex.height];
-    const small = port.parent.patch.cgl.canvasWidth > sizeTex[0] && port.parent.patch.cgl.canvasHeight > sizeTex[1];
+    const small = port.op.patch.cgl.canvasWidth > sizeTex[0] && port.op.patch.cgl.canvasHeight > sizeTex[1];
 
     if (small)
     {
-        mat4.ortho(cgl.pMatrix, 0, port.parent.patch.cgl.canvasWidth, port.parent.patch.cgl.canvasHeight, 0, 0.001, 11);
+        mat4.ortho(cgl.pMatrix, 0, port.op.patch.cgl.canvasWidth, port.op.patch.cgl.canvasHeight, 0, 0.001, 11);
     }
     else mat4.ortho(cgl.pMatrix, -1, 1, 1, -1, 0.001, 11);
 
@@ -2854,7 +2787,7 @@ op.renderVizLayer = (ctx, layer) =>
     this._shaderTimeUniform.setValue(timer.get());
 
     this._shaderTypeUniform.setValue(texType);
-    let s = [port.parent.patch.cgl.canvasWidth, port.parent.patch.cgl.canvasHeight];
+    let s = [port.op.patch.cgl.canvasWidth, port.op.patch.cgl.canvasHeight];
 
     cgl.gl.clearColor(0, 0, 0, 0);
     cgl.gl.clear(cgl.gl.COLOR_BUFFER_BIT | cgl.gl.DEPTH_BUFFER_BIT);
@@ -2922,40 +2855,48 @@ op.renderVizLayer = (ctx, layer) =>
     const borderLeft = (layer.width - sizeImg[0]) / 2;
     const borderTop = (layer.height - sizeImg[1]) / 2;
     ctx.fillRect(
-        layer.x, layer.y,
-        borderLeft, (layer.height)
+        layer.x, layer.y, borderLeft, (layer.height)
     );
     ctx.fillRect(
-        layer.x + sizeImg[0] + borderLeft, layer.y,
-        borderLeft, (layer.height)
+        layer.x + sizeImg[0] + borderLeft, layer.y, borderLeft, (layer.height)
     );
     ctx.fillRect(
-        layer.x, layer.y,
-        layer.width, borderTop
+        layer.x, layer.y, layer.width, borderTop
     );
     ctx.fillRect(
-        layer.x, layer.y + sizeImg[1] + borderTop,
-        layer.width, borderTop
+        layer.x, layer.y + sizeImg[1] + borderTop, layer.width, borderTop
     );
 
     if (sizeTex[1] == 1)
         ctx.drawImage(cgl.canvas,
-            0, 0,
-            s[0], s[1],
-            layer.x, layer.y,
-            layer.width, layer.height * 5);// workaround filtering problems
+            0,
+            0,
+            s[0],
+            s[1],
+            layer.x,
+            layer.y,
+            layer.width,
+            layer.height * 5);// workaround filtering problems
     if (sizeTex[0] == 1)
         ctx.drawImage(cgl.canvas,
-            0, 0,
-            s[0], s[1],
-            layer.x, layer.y,
-            layer.width * 5, layer.height); // workaround filtering problems
+            0,
+            0,
+            s[0],
+            s[1],
+            layer.x,
+            layer.y,
+            layer.width * 5,
+            layer.height); // workaround filtering problems
     else
         ctx.drawImage(cgl.canvas,
-            0, 0,
-            s[0], s[1],
-            layer.x + (layer.width - sizeImg[0]) / 2, layer.y + (layer.height - sizeImg[1]) / 2,
-            sizeImg[0], sizeImg[1]);
+            0,
+            0,
+            s[0],
+            s[1],
+            layer.x + (layer.width - sizeImg[0]) / 2,
+            layer.y + (layer.height - sizeImg[1]) / 2,
+            sizeImg[0],
+            sizeImg[1]);
 
     let info = "unknown";
 
@@ -2989,23 +2930,27 @@ op.renderVizLayer = (ctx, layer) =>
         ctx.fillRect(
             layer.x + layer.width * inX.get() - 1,
             layer.y + sizeImg[1] * inY.get() - 10 + borderTop,
-            3, 20);
+            3,
+            20);
 
         ctx.fillRect(
             layer.x + layer.width * inX.get() - 10,
             layer.y + sizeImg[1] * inY.get() - 1 + borderTop,
-            20, 3);
+            20,
+            3);
 
         ctx.fillStyle = "#fff";
         ctx.fillRect(
             layer.x + layer.width * inX.get() - 1,
             layer.y + sizeImg[1] * inY.get() - 10 + borderTop,
-            1, 20);
+            1,
+            20);
 
         ctx.fillRect(
             layer.x + layer.width * inX.get() - 10,
             layer.y + sizeImg[1] * inY.get() - 1 + borderTop,
-            20, 1);
+            20,
+            1);
     }
 
     outInfo.set(info);
@@ -3025,18 +2970,16 @@ op.renderVizLayer = (ctx, layer) =>
 
         gl.bindFramebuffer(gl.FRAMEBUFFER, fb);
         gl.framebufferTexture2D(
-            gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0,
-            gl.TEXTURE_2D, realTexture.tex, 0
+            gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, realTexture.tex, 0
         );
 
         gl.bindFramebuffer(gl.FRAMEBUFFER, null);
 
-        pixelReader.read(cgl, fb, realTexture.textureType, inX.get() * realTexture.width, realTexture.height - inY.get() * realTexture.height, 1, 1,
-            (pixel) =>
-            {
-                if (realTexture.textureType != CGL.Texture.TYPE_FLOAT)colorString = Math.floor(pixel[0] / 255 * 100) / 100 + "," + Math.floor(pixel[1] / 255 * 100) / 100 + "," + Math.floor(pixel[2] / 255 * 100) / 100 + "," + Math.floor(pixel[3] / 255 * 100) / 100;
-                else colorString = Math.round(pixel[0] * 100) / 100 + "," + Math.round(pixel[1] * 100) / 100 + "," + Math.round(pixel[2] * 100) / 100 + "," + Math.round(pixel[3] * 100) / 100;
-            });
+        pixelReader.read(cgl, fb, realTexture.textureType, inX.get() * realTexture.width, realTexture.height - inY.get() * realTexture.height, 1, 1, (pixel) =>
+        {
+            if (realTexture.textureType != CGL.Texture.TYPE_FLOAT)colorString = Math.floor(pixel[0] / 255 * 100) / 100 + "," + Math.floor(pixel[1] / 255 * 100) / 100 + "," + Math.floor(pixel[2] / 255 * 100) / 100 + "," + Math.floor(pixel[3] / 255 * 100) / 100;
+            else colorString = Math.round(pixel[0] * 100) / 100 + "," + Math.round(pixel[1] * 100) / 100 + "," + Math.round(pixel[2] * 100) / 100 + "," + Math.round(pixel[3] * 100) / 100;
+        });
     }
 
     cgl.gl.clearColor(0, 0, 0, 0);
@@ -3100,7 +3043,9 @@ let loadingCounter = 0;
 const loadingChars = ["|", "/", "-", "\\"];
 let initMeasures = true;
 
-const colorRAFSlow = "#ffffff";
+const colorRAFSlow = "#007f9c";
+const colorRAFVeruSlow = "#aaaaaa";
+
 const colorBg = "#222222";
 const colorRAF = "#003f5c"; // color: https://learnui.design/tools/data-color-picker.html
 const colorMainloop = "#7a5195";
@@ -3258,7 +3203,9 @@ function updateCanvas()
 
     for (k = numBars; k >= 0; k--)
     {
-        if (queue[k] > 30)ctx.fillStyle = colorRAFSlow;
+        if (queue[k] > 30) ctx.fillStyle = colorRAFSlow;
+        if (queue[k] > 60) ctx.fillStyle = colorRAFVeruSlow;
+
         ctx.fillRect(numBars - k, height - queue[k] * hmul, 1, queue[k] * hmul);
         if (queue[k] > 30)ctx.fillStyle = colorRAF;
     }
@@ -3544,8 +3491,8 @@ function render()
 
         if (opened && !op.patch.cgl.profileData.pause)
         {
-            const timeUsed = performance.now() - lastTime;
-            queue.push(timeUsed);
+            // const timeUsed = performance.now() - lastTime;
+            queue.push(op.patch.cgl.profileData.profileFrameDelta);
             queue.shift();
 
             timesMainloop.push(childsTime);
@@ -3565,12 +3512,9 @@ function render()
     selfTime = performance.now() - selfTimeStart;
     const startTimeChilds = performance.now();
 
-    outCanv.set(null);
-    outCanv.set(canvas);
+    outCanv.setRef(canvas);
 
-    // startGlQuery();
     next.trigger();
-    // endGlQuery();
 
     const nChildsTime = performance.now() - startTimeChilds;
     const nCurrentTimeMainloop = op.patch.cgl.profileData.profileMainloopMs;
@@ -3793,7 +3737,8 @@ function update()
 {
     if (CABLES.UI)
     {
-        gui.setStateUnsaved({ "op": op });
+        // gui.setStateUnsaved({ "op": op });
+        gui.savedState.setUnSaved("areaOp");
         op.uiAttr(
             {
                 "comment_title": inTitle.get() || " "
@@ -3828,7 +3773,9 @@ const
     outHeight = op.outNumber("clientHeight"),
     outHeightBody = op.outNumber("body scroll Height"),
     outdevicePixelRatio = op.outNumber("Device Pixel Ratio", 1),
-    outIframeChild = op.outBoolNum("Iframe Parent", window.top != window.self);
+    outIframeChild = op.outBoolNum("Iframe Parent", window.top != window.self),
+    outOrientationAngle = op.outNumber("Orientation Angle", 0),
+    outOrientationType = op.outString("Orientation Type", "");
 
 window.addEventListener("resize", update);
 
@@ -3838,10 +3785,14 @@ function update()
 {
     outWidth.set(window.innerWidth);
     outHeight.set(window.innerHeight);
-
     outdevicePixelRatio.set(window.devicePixelRatio);
-
     outHeightBody.set(document.documentElement.scrollHeight);
+
+    if (window.screen && window.screen.orientation)
+    {
+        outOrientationAngle.set(window.screen.orientation.angle || 0);
+        outOrientationType.set(window.screen.orientation.type || "");
+    }
 }
 
 
@@ -4089,13 +4040,12 @@ op.dynOut = op.addOutPort(new CABLES.Port(op, "create port out", CABLES.OP_PORT_
 const dataStr = op.addInPort(new CABLES.Port(op, "dataStr", CABLES.OP_PORT_TYPE_VALUE, { "display": "readonly" }));
 op.patchId = op.addInPort(new CABLES.Port(op, "patchId", CABLES.OP_PORT_TYPE_VALUE, { "display": "readonly" }));
 
-if (CABLES.UI && CABLES.sandbox.isDevEnv())
-{
-    const inMakeBp = op.inTriggerButton("Create Blueprint");
-    inMakeBp.setUiAttribs({ "hidePort": true });
-
-    inMakeBp.onTriggered = makeBlueprint;
-}
+// if (CABLES.UI && CABLES.sandbox.isDevEnv())
+// {
+//     const inMakeBp = op.inTriggerButton("Create Blueprint");
+//     inMakeBp.setUiAttribs({ "hidePort": true });
+//     inMakeBp.onTriggered = makeBlueprint;
+// }
 
 dataStr.setUiAttribs({ "hideParam": true });
 op.patchId.setUiAttribs({ "hideParam": true });
@@ -5073,6 +5023,7 @@ const attachments={};
 const
     inTex = op.inObject("Texture"),
     outName = op.outNumber("Name"),
+    outPixelFormat = op.outString("PixelFormat"),
     outWidth = op.outNumber("Width"),
     outHeight = op.outNumber("Height"),
     outRatio = op.outNumber("Ratio"),
@@ -5085,7 +5036,7 @@ const
     outCubemap = op.outBoolNum("Is Cubemap"),
     outId = op.outNumber("Id");
 
-outFp.setUiAttribs({ "title": "Pixelformat Float 32bit" });
+outFp.setUiAttribs({ "title": "Float" });
 
 const emptyTex = CGL.Texture.getEmptyTexture(op.patch.cgl);
 const defaultTex = CGL.Texture.getTempTexture(op.patch.cgl);
@@ -5114,6 +5065,7 @@ inTex.onChange = function ()
 
         outWrap.set(inTex.get().wrap + " " + strWrap);
 
+        outPixelFormat.set(inTex.get().pixelFormat);
         outId.set(inTex.get().id);
         outFlipped.set(inTex.get().flipped);
         outFp.set(inTex.get().textureType == CGL.Texture.TYPE_FLOAT);
@@ -6076,9 +6028,14 @@ function onKeyUp(e)
 {
     if (e.keyCode == learnedKeyCode.get())
     {
-        // op.log("Key released, key code: " + e.keyCode);
-        onRelease.trigger();
-        outPressed.set(false);
+        let doTrigger = true;
+        if (modKey.get() == "alt" && e.altKey != true) doTrigger = false;
+
+        if (doTrigger)
+        {
+            onRelease.trigger();
+            outPressed.set(false);
+        }
     }
 }
 
@@ -6485,7 +6442,7 @@ function warning()
 {
     if (inClass.get() && inStyle.get())
     {
-        op.setUiError("error", "DIV uses external and inline CSS", 1);
+        op.setUiError("error", "Element uses external and inline CSS", 1);
     }
     else
     {
@@ -8149,11 +8106,21 @@ function exec()
 {
     if (data.get())
     {
-        result.set(data.get()[key.get()]);
+        const value = data.get()[key.get()];
+        const isNull = value === undefined || value === null;
+
+        if (isNull)
+        {
+            result.setRef(null);
+        }
+        else
+        {
+            result.set(String(value));
+        }
     }
     else
     {
-        result.set(null);
+        result.setRef(null);
     }
 }
 
@@ -8344,7 +8311,9 @@ function realReload(nocache)
 
                     if (err)
                     {
-                        setTempTexture();
+                        const t = CGL.Texture.getErrorTexture(cgl);
+                        textureOut.set(t);
+
                         op.setUiError("urlerror", "could not load texture: \"" + filename.get() + "\"", 2);
                         cgl.patch.loading.finished(loadingId);
                         loadingId = null;
@@ -8626,123 +8595,6 @@ CABLES.OPS["ea508405-833d-411a-86b4-1a012c135c8a"]={f:Ops.Array.ArrayLength,objN
 
 // **************************************************************
 // 
-// Ops.Gl.DownloadTexture_v2
-// 
-// **************************************************************
-
-Ops.Gl.DownloadTexture_v2 = function()
-{
-CABLES.Op.apply(this,arguments);
-const op=this;
-const attachments={};
-const
-    inTex = op.inTexture("Texture"),
-    start = op.inTriggerButton("Download"),
-    fileName = op.inString("Filename", "screenshot"),
-    outFinished = op.outBoolNum("Finished");
-
-const gl = op.patch.cgl.gl;
-let fb = null;
-
-start.onTriggered = function ()
-{
-    if (!inTex.get() || !inTex.get().tex) return;
-    outFinished.set(false);
-
-    const width = inTex.get().width;
-    const height = inTex.get().height;
-
-    if (inTex.get().textureType == CGL.Texture.TYPE_FLOAT) op.setUiError("fptex", "Texture is more than 8 bit, not possible to create files with high precision");
-    else op.setUiError("fptex", null);
-
-    if (!fb)fb = gl.createFramebuffer();
-
-    gl.bindFramebuffer(gl.FRAMEBUFFER, fb);
-    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, inTex.get().tex, 0);
-
-    const canRead = (gl.checkFramebufferStatus(gl.FRAMEBUFFER) == gl.FRAMEBUFFER_COMPLETE);
-
-    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-
-    if (!canRead)
-    {
-        outFinished.set(true);
-        op.logError("cannot read texture!");
-        return;
-    }
-
-    gl.bindFramebuffer(gl.FRAMEBUFFER, fb);
-    const data = new Uint8Array(width * height * 4);
-    gl.readPixels(0, 0, width, height, gl.RGBA, gl.UNSIGNED_BYTE, data);
-    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-
-    // Create a 2D canvas to store the result
-    const canvas = document.createElement("canvas");
-    canvas.width = width;
-    canvas.height = height;
-    const context = canvas.getContext("2d");
-
-    // Copy the pixels to a 2D canvas
-    const imageData = context.createImageData(width, height);
-    imageData.data.set(data);
-
-    const data2 = imageData.data;
-
-    // flip image
-    Array.from({ "length": height }, (val, i) => { return data2.slice(i * width * 4, (i + 1) * width * 4); })
-        .forEach((val, i) => { return data2.set(val, (height - i - 1) * width * 4); });
-
-    context.putImageData(imageData, 0, 0);
-
-    dataURIToBlob(canvas.toDataURL(),
-        function (blob)
-        {
-            const userAgent = navigator.userAgent || navigator.vendor || window.opera;
-
-            if (/iPad|iPhone|iPod/.test(userAgent) && !window.MSStream)
-            {
-                const reader = new FileReader();
-                // var out = new Blob([byte], {type: "application/pdf"});
-                reader.onload = function (e)
-                {
-                    window.location.href = reader.result;
-                //   window.open(reader.result);
-                };
-                reader.readAsDataURL(blob);
-            }
-            else
-            {
-                const anchor = document.createElement("a");
-                anchor.download = fileName.get() + ".png";
-                // anchor.target='_blank';
-                anchor.href = URL.createObjectURL(blob);
-                document.body.appendChild(anchor);
-                anchor.click();
-            }
-            outFinished.set(true);
-        });
-};
-
-function dataURIToBlob(dataURI, callback)
-{
-    const binStr = atob(dataURI.split(",")[1]),
-        len = binStr.length,
-        arr = new Uint8Array(len);
-    for (let i = 0; i < len; i++) arr[i] = binStr.charCodeAt(i);
-    callback(new Blob([arr], { "type": "image/png" }));
-}
-
-
-};
-
-Ops.Gl.DownloadTexture_v2.prototype = new CABLES.Op();
-CABLES.OPS["00d2a6ea-5843-43d0-9428-dbc47c112e6e"]={f:Ops.Gl.DownloadTexture_v2,objName:"Ops.Gl.DownloadTexture_v2"};
-
-
-
-
-// **************************************************************
-// 
 // Ops.Ui.VizArrayTable
 // 
 // **************************************************************
@@ -8764,8 +8616,9 @@ function getCellValue(v)
 
     if (typeof v == "string")
     {
-        if (CABLES.UTILS.isNumeric(v)) str = "\"" + v + "\"";
-        else str = v;
+        // if (CABLES.UTILS.isNumeric(v)) str = "\"" + v + "\"";
+        // else str = v;
+        str = "\"" + v + "\"";
     }
     else if (CABLES.UTILS.isNumeric(v)) str = String(Math.round(v * 10000) / 10000);
     else if (Array.isArray(v))
@@ -9041,11 +8894,11 @@ CABLES.OPS["ef15195a-760b-4ac5-9630-322b0ba7b722"]={f:Ops.String.StringEquals,ob
 
 // **************************************************************
 // 
-// Ops.Boolean.TriggerBoolean
+// Ops.Boolean.BoolByTrigger
 // 
 // **************************************************************
 
-Ops.Boolean.TriggerBoolean = function()
+Ops.Boolean.BoolByTrigger = function()
 {
 CABLES.Op.apply(this,arguments);
 const op=this;
@@ -9068,8 +8921,8 @@ inTriggerFalse.onTriggered = function ()
 
 };
 
-Ops.Boolean.TriggerBoolean.prototype = new CABLES.Op();
-CABLES.OPS["31f65abe-9d6c-4ba6-a291-ef2de41d2087"]={f:Ops.Boolean.TriggerBoolean,objName:"Ops.Boolean.TriggerBoolean"};
+Ops.Boolean.BoolByTrigger.prototype = new CABLES.Op();
+CABLES.OPS["31f65abe-9d6c-4ba6-a291-ef2de41d2087"]={f:Ops.Boolean.BoolByTrigger,objName:"Ops.Boolean.BoolByTrigger"};
 
 
 
@@ -10203,40 +10056,6 @@ CABLES.OPS["090355fe-6ad9-457c-8192-9e306a9fe1eb"]={f:Ops.Extension.FxHash.FxHas
 
 // **************************************************************
 // 
-// Ops.Debug.ConsoleLog
-// 
-// **************************************************************
-
-Ops.Debug.ConsoleLog = function()
-{
-CABLES.Op.apply(this,arguments);
-const op=this;
-const attachments={};
-const
-    inNumber=op.inFloat("Number",0),
-    inString=op.inString("String","");
-
-
-inNumber.onChange=function()
-{
-    console.log(inNumber.get());
-};
-
-inString.onChange=function()
-{
-    console.log(inString.get());
-};
-
-};
-
-Ops.Debug.ConsoleLog.prototype = new CABLES.Op();
-CABLES.OPS["545e7225-73b0-4d40-923b-4b39940403a8"]={f:Ops.Debug.ConsoleLog,objName:"Ops.Debug.ConsoleLog"};
-
-
-
-
-// **************************************************************
-// 
 // Ops.Vars.VarSetArray_v2
 // 
 // **************************************************************
@@ -10353,70 +10172,6 @@ function update()
 
 Ops.Array.ArrayGetNumber.prototype = new CABLES.Op();
 CABLES.OPS["d1189078-70cf-437d-9a37-b2ebe89acdaf"]={f:Ops.Array.ArrayGetNumber,objName:"Ops.Array.ArrayGetNumber"};
-
-
-
-
-// **************************************************************
-// 
-// Ops.Math.Modulo
-// 
-// **************************************************************
-
-Ops.Math.Modulo = function()
-{
-CABLES.Op.apply(this,arguments);
-const op=this;
-const attachments={};
-const
-    number1 = op.inValueFloat("number1", 1),
-    number2 = op.inValueFloat("number2", 2),
-    pingpong = op.inValueBool("pingpong"),
-    result = op.outNumber("result");
-
-let calculateFunction = calculateModule;
-
-number1.onChange =
-number2.onChange = exec;
-
-pingpong.onChange = updatePingPong;
-
-exec();
-
-function exec()
-{
-    let n2 = number2.get();
-    let n1 = number1.get();
-
-    result.set(calculateFunction(n1, n2));
-}
-
-function calculateModule(n1, n2)
-{
-    let re = ((n1 % n2) + n2) % n2;
-    if (re != re) re = 0;
-    return re;
-}
-
-function calculatePingPong(i, n)
-{
-    let cycle = 2 * n;
-    i %= cycle;
-    if (i >= n) return cycle - i;
-    else return i;
-}
-
-function updatePingPong()
-{
-    if (pingpong.get()) calculateFunction = calculatePingPong;
-    else calculateFunction = calculateModule;
-}
-
-
-};
-
-Ops.Math.Modulo.prototype = new CABLES.Op();
-CABLES.OPS["ebc13b25-3705-4265-8f06-5f985b6a7bb1"]={f:Ops.Math.Modulo,objName:"Ops.Math.Modulo"};
 
 
 
@@ -10747,6 +10502,70 @@ CABLES.OPS["69faf293-140d-4a2c-ab2e-7e5577ab113d"]={f:Ops.Array.ArrayIndexBetwee
 
 // **************************************************************
 // 
+// Ops.Math.Modulo
+// 
+// **************************************************************
+
+Ops.Math.Modulo = function()
+{
+CABLES.Op.apply(this,arguments);
+const op=this;
+const attachments={};
+const
+    number1 = op.inValueFloat("number1", 1),
+    number2 = op.inValueFloat("number2", 2),
+    pingpong = op.inValueBool("pingpong"),
+    result = op.outNumber("result");
+
+let calculateFunction = calculateModule;
+
+number1.onChange =
+number2.onChange = exec;
+
+pingpong.onChange = updatePingPong;
+
+exec();
+
+function exec()
+{
+    let n2 = number2.get();
+    let n1 = number1.get();
+
+    result.set(calculateFunction(n1, n2));
+}
+
+function calculateModule(n1, n2)
+{
+    let re = ((n1 % n2) + n2) % n2;
+    if (re != re) re = 0;
+    return re;
+}
+
+function calculatePingPong(i, n)
+{
+    let cycle = 2 * n;
+    i %= cycle;
+    if (i >= n) return cycle - i;
+    else return i;
+}
+
+function updatePingPong()
+{
+    if (pingpong.get()) calculateFunction = calculatePingPong;
+    else calculateFunction = calculateModule;
+}
+
+
+};
+
+Ops.Math.Modulo.prototype = new CABLES.Op();
+CABLES.OPS["ebc13b25-3705-4265-8f06-5f985b6a7bb1"]={f:Ops.Math.Modulo,objName:"Ops.Math.Modulo"};
+
+
+
+
+// **************************************************************
+// 
 // Ops.Value.ValueChangedTrigger
 // 
 // **************************************************************
@@ -11065,109 +10884,6 @@ CABLES.OPS["4dd3cc55-eebc-4187-9d4e-2e053a956fab"]={f:Ops.Math.Compare.Equals,ob
 
 // **************************************************************
 // 
-// Ops.Anim.Timer_v2
-// 
-// **************************************************************
-
-Ops.Anim.Timer_v2 = function()
-{
-CABLES.Op.apply(this,arguments);
-const op=this;
-const attachments={};
-const
-    inSpeed = op.inValue("Speed", 1),
-    playPause = op.inValueBool("Play", true),
-    reset = op.inTriggerButton("Reset"),
-    inSyncTimeline = op.inValueBool("Sync to timeline", false),
-    outTime = op.outNumber("Time");
-
-op.setPortGroup("Controls", [playPause, reset, inSpeed]);
-
-const timer = new CABLES.Timer();
-let lastTime = null;
-let time = 0;
-let syncTimeline = false;
-
-playPause.onChange = setState;
-setState();
-
-function setState()
-{
-    if (playPause.get())
-    {
-        timer.play();
-        op.patch.addOnAnimFrame(op);
-    }
-    else
-    {
-        timer.pause();
-        op.patch.removeOnAnimFrame(op);
-    }
-}
-
-reset.onTriggered = doReset;
-
-function doReset()
-{
-    time = 0;
-    lastTime = null;
-    timer.setTime(0);
-    outTime.set(0);
-}
-
-inSyncTimeline.onChange = function ()
-{
-    syncTimeline = inSyncTimeline.get();
-    playPause.setUiAttribs({ "greyout": syncTimeline });
-    reset.setUiAttribs({ "greyout": syncTimeline });
-};
-
-op.onAnimFrame = function (tt)
-{
-    if (timer.isPlaying())
-    {
-        if (CABLES.overwriteTime !== undefined)
-        {
-            outTime.set(CABLES.overwriteTime * inSpeed.get());
-        }
-        else
-
-        if (syncTimeline)
-        {
-            outTime.set(tt * inSpeed.get());
-        }
-        else
-        {
-            timer.update();
-            const timerVal = timer.get();
-
-            if (lastTime === null)
-            {
-                lastTime = timerVal;
-                return;
-            }
-
-            const t = Math.abs(timerVal - lastTime);
-            lastTime = timerVal;
-
-            time += t * inSpeed.get();
-            if (time != time)time = 0;
-            outTime.set(time);
-        }
-    }
-};
-
-
-};
-
-Ops.Anim.Timer_v2.prototype = new CABLES.Op();
-CABLES.OPS["aac7f721-208f-411a-adb3-79adae2e471a"]={f:Ops.Anim.Timer_v2,objName:"Ops.Anim.Timer_v2"};
-
-
-
-
-// **************************************************************
-// 
 // Ops.Trigger.TriggerIfDecreased
 // 
 // **************************************************************
@@ -11241,159 +10957,6 @@ exe.onTriggered = function ()
 
 Ops.Trigger.TriggersPerSecond.prototype = new CABLES.Op();
 CABLES.OPS["ece2f153-eb31-4268-b0e5-8143ad2fdd81"]={f:Ops.Trigger.TriggersPerSecond,objName:"Ops.Trigger.TriggersPerSecond"};
-
-
-
-
-// **************************************************************
-// 
-// Ops.Devices.Mouse.MouseButtons
-// 
-// **************************************************************
-
-Ops.Devices.Mouse.MouseButtons = function()
-{
-CABLES.Op.apply(this,arguments);
-const op=this;
-const attachments={};
-const
-    mouseClickLeft = op.outTrigger("Click Left"),
-    mouseClickRight = op.outTrigger("Click Right"),
-    mouseDoubleClick = op.outTrigger("Double Click"),
-    mouseDownLeft = op.outBoolNum("Button pressed Left", false),
-    mouseDownMiddle = op.outBoolNum("Button pressed Middle", false),
-    mouseDownRight = op.outBoolNum("Button pressed Right", false),
-    triggerMouseDownLeft = op.outTrigger("Mouse Down Left"),
-    triggerMouseDownMiddle = op.outTrigger("Mouse Down Middle"),
-    triggerMouseDownRight = op.outTrigger("Mouse Down Right"),
-    triggerMouseUpLeft = op.outTrigger("Mouse Up Left"),
-    triggerMouseUpMiddle = op.outTrigger("Mouse Up Middle"),
-    triggerMouseUpRight = op.outTrigger("Mouse Up Right"),
-    area = op.inValueSelect("Area", ["Canvas", "Document"], "Canvas"),
-    active = op.inValueBool("Active", true);
-
-const cgl = op.patch.cgl;
-let listenerElement = null;
-area.onChange = updateListeners;
-op.onDelete = removeListeners;
-updateListeners();
-
-function onMouseDown(e)
-{
-    if (e.which == 1)
-    {
-        mouseDownLeft.set(true);
-        triggerMouseDownLeft.trigger();
-    }
-    else if (e.which == 2)
-    {
-        mouseDownMiddle.set(true);
-        triggerMouseDownMiddle.trigger();
-    }
-    else if (e.which == 3)
-    {
-        mouseDownRight.set(true);
-        triggerMouseDownRight.trigger();
-    }
-}
-
-function onMouseUp(e)
-{
-    if (e.which == 1)
-    {
-        mouseDownLeft.set(false);
-        triggerMouseUpLeft.trigger();
-    }
-    else if (e.which == 2)
-    {
-        mouseDownMiddle.set(false);
-        triggerMouseUpMiddle.trigger();
-    }
-    else if (e.which == 3)
-    {
-        mouseDownRight.set(false);
-        triggerMouseUpRight.trigger();
-    }
-}
-
-function onClickRight(e)
-{
-    mouseClickRight.trigger();
-    e.preventDefault();
-}
-
-function onDoubleClick(e)
-{
-    mouseDoubleClick.trigger();
-}
-
-function onmouseclick(e)
-{
-    mouseClickLeft.trigger();
-}
-
-function ontouchstart(event)
-{
-    if (event.touches && event.touches.length > 0)
-    {
-        event.touches[0].which = 1;
-        onMouseDown(event.touches[0]);
-    }
-}
-
-function ontouchend(event)
-{
-    onMouseUp({ "which": 1 });
-}
-
-function removeListeners()
-{
-    if (!listenerElement) return;
-    listenerElement.removeEventListener("touchend", ontouchend);
-    listenerElement.removeEventListener("touchcancel", ontouchend);
-    listenerElement.removeEventListener("touchstart", ontouchstart);
-    listenerElement.removeEventListener("dblclick", onDoubleClick);
-    listenerElement.removeEventListener("click", onmouseclick);
-    listenerElement.removeEventListener("mousedown", onMouseDown);
-    listenerElement.removeEventListener("mouseup", onMouseUp);
-    listenerElement.removeEventListener("contextmenu", onClickRight);
-    listenerElement.removeEventListener("mouseleave", onMouseUp);
-    listenerElement = null;
-}
-
-function addListeners()
-{
-    if (listenerElement)removeListeners();
-
-    listenerElement = cgl.canvas;
-    if (area.get() == "Document") listenerElement = document.body;
-
-    listenerElement.addEventListener("touchend", ontouchend);
-    listenerElement.addEventListener("touchcancel", ontouchend);
-    listenerElement.addEventListener("touchstart", ontouchstart);
-    listenerElement.addEventListener("dblclick", onDoubleClick);
-    listenerElement.addEventListener("click", onmouseclick);
-    listenerElement.addEventListener("mousedown", onMouseDown);
-    listenerElement.addEventListener("mouseup", onMouseUp);
-    listenerElement.addEventListener("contextmenu", onClickRight);
-    listenerElement.addEventListener("mouseleave", onMouseUp);
-}
-
-op.onLoaded = updateListeners;
-
-active.onChange = updateListeners;
-
-function updateListeners()
-{
-    removeListeners();
-    if (active.get()) addListeners();
-}
-
-
-};
-
-Ops.Devices.Mouse.MouseButtons.prototype = new CABLES.Op();
-CABLES.OPS["c7e5e545-c8a1-4fef-85c2-45422b947f0d"]={f:Ops.Devices.Mouse.MouseButtons,objName:"Ops.Devices.Mouse.MouseButtons"};
 
 
 
@@ -11579,6 +11142,7 @@ let lastTex = null;
 let effect = null;
 let tex = null;
 let needsResUpdate = true;
+let oldTex = null;
 
 let w = 2, h = 2;
 const prevViewPort = [0, 0, 0, 0];
@@ -11595,18 +11159,21 @@ let textureMaskUniform = new CGL.Uniform(bgShader, "t", "texMask", 1);
 let selectedFilter = CGL.Texture.FILTER_LINEAR;
 let selectedWrap = CGL.Texture.WRAP_CLAMP_TO_EDGE;
 
-alphaMaskMethod.onChange =
-    greyscale.onChange =
-    invertR.onChange =
-    invertG.onChange =
-    invertB.onChange =
-    twrap.onChange =
-    tfilter.onChange =
-    fpTexture.onChange =
-    render.onLinkChanged =
-    inTexture.onLinkChanged =
-    inTexture.onChange =
-    inTextureMask.onChange = updateSoon;
+alphaMaskMethod.onChange = () => { updateSoon(); };
+greyscale.onChange = () => { updateSoon(); };
+invertR.onChange = () => { updateSoon(); };
+invertG.onChange = () => { updateSoon(); };
+invertB.onChange = () => { updateSoon(); };
+twrap.onChange = () => { updateSoon(); };
+tfilter.onChange = () => { updateSoon(); };
+fpTexture.onChange = () => { updateSoon(); };
+render.onLinkChanged = () => { updateSoon(); };
+inTexture.onLinkChanged = () => { updateSoon(); };
+inTexture.onChange = () =>
+{
+    if (oldTex != inTexture.get()) { updateSoon(); console.log("redo reason: inTexture"); }oldTex = inTexture.get();
+};
+inTextureMask.onChange = () => { updateSoon(); };
 
 render.onTriggered = doRender;
 updateSizePorts();
@@ -11642,7 +11209,7 @@ function initEffect()
     }
 
     effect.setSourceTexture(tex);
-    texOut.set(null);
+    // texOut.set(CGL.Texture.getEmptyTexture(cgl));
     reInitEffect = false;
 }
 
@@ -11680,12 +11247,12 @@ function updateResolution()
         effect.setSourceTexture(tex);
     }
 
-    if (texOut.get() && selectedFilter != CGL.Texture.FILTER_NEAREST)
-    {
-        if (!texOut.get().isPowerOfTwo()) op.setUiError("hintnpot", "texture dimensions not power of two! - texture filtering when scaling will not work on ios devices.", 0);
-        else op.setUiError("hintnpot", null, 0);
-    }
-    else op.setUiError("hintnpot", null, 0);
+    // if (texOut.get() && selectedFilter != CGL.Texture.FILTER_NEAREST)
+    // {
+    //     if (!texOut.get().isPowerOfTwo()) op.setUiError("hintnpot", "texture dimensions not power of two! - texture filtering when scaling will not work on ios devices.", 0);
+    //     else op.setUiError("hintnpot", null, 0);
+    // }
+    // else op.setUiError("hintnpot", null, 0);
 
     needsResUpdate = false;
 }
@@ -12329,55 +11896,6 @@ CABLES.OPS["777d00c6-5605-43c5-9b6a-b20d465bd3ba"]={f:Ops.Html.ElementCssTransfo
 
 // **************************************************************
 // 
-// Ops.Boolean.Or
-// 
-// **************************************************************
-
-Ops.Boolean.Or = function()
-{
-CABLES.Op.apply(this,arguments);
-const op=this;
-const attachments={};
-const
-    bool0 = op.inValueBool("bool 1"),
-    bool1 = op.inValueBool("bool 2"),
-    bool2 = op.inValueBool("bool 3"),
-    bool3 = op.inValueBool("bool 4"),
-    bool4 = op.inValueBool("bool 5"),
-    bool5 = op.inValueBool("bool 6"),
-    bool6 = op.inValueBool("bool 7"),
-    bool7 = op.inValueBool("bool 8"),
-    bool8 = op.inValueBool("bool 9"),
-    bool9 = op.inValueBool("bool 10"),
-    result = op.outBoolNum("result");
-
-bool0.onChange =
-    bool1.onChange =
-    bool2.onChange =
-    bool3.onChange =
-    bool4.onChange =
-    bool5.onChange =
-    bool6.onChange =
-    bool7.onChange =
-    bool8.onChange =
-    bool9.onChange = exec;
-
-function exec()
-{
-    result.set(bool0.get() || bool1.get() || bool2.get() || bool3.get() || bool4.get() || bool5.get() || bool6.get() || bool7.get() || bool8.get() || bool9.get());
-}
-
-
-};
-
-Ops.Boolean.Or.prototype = new CABLES.Op();
-CABLES.OPS["b3b36238-4592-4e11-afe3-8361c4fd6be5"]={f:Ops.Boolean.Or,objName:"Ops.Boolean.Or"};
-
-
-
-
-// **************************************************************
-// 
 // Ops.TimeLine.TimeLineTogglePlay
 // 
 // **************************************************************
@@ -12712,11 +12230,11 @@ CABLES.OPS["338032c5-bf47-454b-8ae1-cd91f17e5c5b"]={f:Ops.Value.SwitchNumberOnTr
 
 // **************************************************************
 // 
-// Ops.Trigger.SetNumberOnTrigger
+// Ops.Trigger.TriggerNumber
 // 
 // **************************************************************
 
-Ops.Trigger.SetNumberOnTrigger = function()
+Ops.Trigger.TriggerNumber = function()
 {
 CABLES.Op.apply(this,arguments);
 const op=this;
@@ -12738,8 +12256,8 @@ setValuePort.onTriggered = function ()
 
 };
 
-Ops.Trigger.SetNumberOnTrigger.prototype = new CABLES.Op();
-CABLES.OPS["9989b1c0-1073-4d5f-bfa0-36dd98b66e27"]={f:Ops.Trigger.SetNumberOnTrigger,objName:"Ops.Trigger.SetNumberOnTrigger"};
+Ops.Trigger.TriggerNumber.prototype = new CABLES.Op();
+CABLES.OPS["9989b1c0-1073-4d5f-bfa0-36dd98b66e27"]={f:Ops.Trigger.TriggerNumber,objName:"Ops.Trigger.TriggerNumber"};
 
 
 
@@ -13125,14 +12643,13 @@ CABLES.Op.apply(this,arguments);
 const op=this;
 const attachments={};
 const
-    v=op.inString("value",""),
-    result=op.outString("String");
+    v = op.inString("value", ""),
+    result = op.outString("String");
 
-v.onChange=function()
+v.onChange = function ()
 {
     result.set(v.get());
 };
-
 
 
 };
@@ -13431,7 +12948,7 @@ Ops.Gl.TextureEffects.Noise.PerlinNoise_v2 = function()
 {
 CABLES.Op.apply(this,arguments);
 const op=this;
-const attachments={"perlinnoise3d_frag":"UNI float z;\nUNI float x;\nUNI float y;\nUNI float scale;\nUNI float rangeMul;\nUNI float harmonics;\nUNI float aspect;\n\nIN vec2 texCoord;\nUNI sampler2D tex;\n\n#ifdef HAS_TEX_OFFSETMAP\n    UNI sampler2D texOffsetZ;\n    UNI float offMul;\n#endif\n\n#ifdef HAS_TEX_MASK\n    UNI sampler2D texMask;\n#endif\n\nUNI float amount;\n\n{{CGL.BLENDMODES3}}\n\n\nfloat Interpolation_C2( float x ) { return x * x * x * (x * (x * 6.0 - 15.0) + 10.0); }   //  6x^5-15x^4+10x^3\t( Quintic Curve.  As used by Perlin in Improved Noise.  http://mrl.nyu.edu/~perlin/paper445.pdf )\nvec2 Interpolation_C2( vec2 x ) { return x * x * x * (x * (x * 6.0 - 15.0) + 10.0); }\nvec3 Interpolation_C2( vec3 x ) { return x * x * x * (x * (x * 6.0 - 15.0) + 10.0); }\nvec4 Interpolation_C2( vec4 x ) { return x * x * x * (x * (x * 6.0 - 15.0) + 10.0); }\nvec4 Interpolation_C2_InterpAndDeriv( vec2 x ) { return x.xyxy * x.xyxy * ( x.xyxy * ( x.xyxy * ( x.xyxy * vec2( 6.0, 0.0 ).xxyy + vec2( -15.0, 30.0 ).xxyy ) + vec2( 10.0, -60.0 ).xxyy ) + vec2( 0.0, 30.0 ).xxyy ); }\nvec3 Interpolation_C2_Deriv( vec3 x ) { return x * x * (x * (x * 30.0 - 60.0) + 30.0); }\n\n\nvoid FAST32_hash_3D( vec3 gridcell, out vec4 lowz_hash, out vec4 highz_hash )\t//\tgenerates a random number for each of the 8 cell corners\n{\n    //    gridcell is assumed to be an integer coordinate\n\n    //\tTODO: \tthese constants need tweaked to find the best possible noise.\n    //\t\t\tprobably requires some kind of brute force computational searching or something....\n    const vec2 OFFSET = vec2( 50.0, 161.0 );\n    const float DOMAIN = 69.0;\n    const float SOMELARGEFLOAT = 635.298681;\n    const float ZINC = 48.500388;\n\n    //\ttruncate the domain\n    gridcell.xyz = gridcell.xyz - floor(gridcell.xyz * ( 1.0 / DOMAIN )) * DOMAIN;\n    vec3 gridcell_inc1 = step( gridcell, vec3( DOMAIN - 1.5 ) ) * ( gridcell + 1.0 );\n\n    //\tcalculate the noise\n    vec4 P = vec4( gridcell.xy, gridcell_inc1.xy ) + OFFSET.xyxy;\n    P *= P;\n    P = P.xzxz * P.yyww;\n    highz_hash.xy = vec2( 1.0 / ( SOMELARGEFLOAT + vec2( gridcell.z, gridcell_inc1.z ) * ZINC ) );\n    lowz_hash = fract( P * highz_hash.xxxx );\n    highz_hash = fract( P * highz_hash.yyyy );\n}\n\n\n\n\nvoid FAST32_hash_3D( \tvec3 gridcell,\n                        out vec4 lowz_hash_0,\n                        out vec4 lowz_hash_1,\n                        out vec4 lowz_hash_2,\n                        out vec4 highz_hash_0,\n                        out vec4 highz_hash_1,\n                        out vec4 highz_hash_2\t)\t\t//\tgenerates 3 random numbers for each of the 8 cell corners\n{\n    //    gridcell is assumed to be an integer coordinate\n\n    //\tTODO: \tthese constants need tweaked to find the best possible noise.\n    //\t\t\tprobably requires some kind of brute force computational searching or something....\n    const vec2 OFFSET = vec2( 50.0, 161.0 );\n    const float DOMAIN = 69.0;\n    const vec3 SOMELARGEFLOATS = vec3( 635.298681, 682.357502, 668.926525 );\n    const vec3 ZINC = vec3( 48.500388, 65.294118, 63.934599 );\n\n    //\ttruncate the domain\n    gridcell.xyz = gridcell.xyz - floor(gridcell.xyz * ( 1.0 / DOMAIN )) * DOMAIN;\n    vec3 gridcell_inc1 = step( gridcell, vec3( DOMAIN - 1.5 ) ) * ( gridcell + 1.0 );\n\n    //\tcalculate the noise\n    vec4 P = vec4( gridcell.xy, gridcell_inc1.xy ) + OFFSET.xyxy;\n    P *= P;\n    P = P.xzxz * P.yyww;\n    vec3 lowz_mod = vec3( 1.0 / ( SOMELARGEFLOATS.xyz + gridcell.zzz * ZINC.xyz ) );\n    vec3 highz_mod = vec3( 1.0 / ( SOMELARGEFLOATS.xyz + gridcell_inc1.zzz * ZINC.xyz ) );\n    lowz_hash_0 = fract( P * lowz_mod.xxxx );\n    highz_hash_0 = fract( P * highz_mod.xxxx );\n    lowz_hash_1 = fract( P * lowz_mod.yyyy );\n    highz_hash_1 = fract( P * highz_mod.yyyy );\n    lowz_hash_2 = fract( P * lowz_mod.zzzz );\n    highz_hash_2 = fract( P * highz_mod.zzzz );\n}\nfloat Falloff_Xsq_C1( float xsq ) { xsq = 1.0 - xsq; return xsq*xsq; }\t// ( 1.0 - x*x )^2   ( Used by Humus for lighting falloff in Just Cause 2.  GPUPro 1 )\nfloat Falloff_Xsq_C2( float xsq ) { xsq = 1.0 - xsq; return xsq*xsq*xsq; }\t// ( 1.0 - x*x )^3.   NOTE: 2nd derivative is 0.0 at x=1.0, but non-zero at x=0.0\nvec4 Falloff_Xsq_C2( vec4 xsq ) { xsq = 1.0 - xsq; return xsq*xsq*xsq; }\n\n\n//\n//\tPerlin Noise 3D  ( gradient noise )\n//\tReturn value range of -1.0->1.0\n//\thttp://briansharpe.files.wordpress.com/2011/11/perlinsample.jpg\n//\nfloat Perlin3D( vec3 P )\n{\n    //\testablish our grid cell and unit position\n    vec3 Pi = floor(P);\n    vec3 Pf = P - Pi;\n    vec3 Pf_min1 = Pf - 1.0;\n\n#if 1\n    //\n    //\tclassic noise.\n    //\trequires 3 random values per point.  with an efficent hash function will run faster than improved noise\n    //\n\n    //\tcalculate the hash.\n    //\t( various hashing methods listed in order of speed )\n    vec4 hashx0, hashy0, hashz0, hashx1, hashy1, hashz1;\n    FAST32_hash_3D( Pi, hashx0, hashy0, hashz0, hashx1, hashy1, hashz1 );\n    //SGPP_hash_3D( Pi, hashx0, hashy0, hashz0, hashx1, hashy1, hashz1 );\n\n    //\tcalculate the gradients\n    vec4 grad_x0 = hashx0 - 0.49999;\n    vec4 grad_y0 = hashy0 - 0.49999;\n    vec4 grad_z0 = hashz0 - 0.49999;\n    vec4 grad_x1 = hashx1 - 0.49999;\n    vec4 grad_y1 = hashy1 - 0.49999;\n    vec4 grad_z1 = hashz1 - 0.49999;\n    vec4 grad_results_0 = inversesqrt( grad_x0 * grad_x0 + grad_y0 * grad_y0 + grad_z0 * grad_z0 ) * ( vec2( Pf.x, Pf_min1.x ).xyxy * grad_x0 + vec2( Pf.y, Pf_min1.y ).xxyy * grad_y0 + Pf.zzzz * grad_z0 );\n    vec4 grad_results_1 = inversesqrt( grad_x1 * grad_x1 + grad_y1 * grad_y1 + grad_z1 * grad_z1 ) * ( vec2( Pf.x, Pf_min1.x ).xyxy * grad_x1 + vec2( Pf.y, Pf_min1.y ).xxyy * grad_y1 + Pf_min1.zzzz * grad_z1 );\n\n#if 1\n    //\tClassic Perlin Interpolation\n    vec3 blend = Interpolation_C2( Pf );\n    vec4 res0 = mix( grad_results_0, grad_results_1, blend.z );\n    vec4 blend2 = vec4( blend.xy, vec2( 1.0 - blend.xy ) );\n    float final = dot( res0, blend2.zxzx * blend2.wwyy );\n    final *= 1.1547005383792515290182975610039;\t\t//\t(optionally) scale things to a strict -1.0->1.0 range    *= 1.0/sqrt(0.75)\n    return final;\n#else\n    //\tClassic Perlin Surflet\n    //\thttp://briansharpe.wordpress.com/2012/03/09/modifications-to-classic-perlin-noise/\n    Pf *= Pf;\n    Pf_min1 *= Pf_min1;\n    vec4 vecs_len_sq = vec4( Pf.x, Pf_min1.x, Pf.x, Pf_min1.x ) + vec4( Pf.yy, Pf_min1.yy );\n    float final = dot( Falloff_Xsq_C2( min( vec4( 1.0 ), vecs_len_sq + Pf.zzzz ) ), grad_results_0 ) + dot( Falloff_Xsq_C2( min( vec4( 1.0 ), vecs_len_sq + Pf_min1.zzzz ) ), grad_results_1 );\n    final *= 2.3703703703703703703703703703704;\t\t//\t(optionally) scale things to a strict -1.0->1.0 range    *= 1.0/cube(0.75)\n    return final;\n#endif\n\n#else\n    //\n    //\timproved noise.\n    //\trequires 1 random value per point.  Will run faster than classic noise if a slow hashing function is used\n    //\n\n    //\tcalculate the hash.\n    //\t( various hashing methods listed in order of speed )\n    vec4 hash_lowz, hash_highz;\n    FAST32_hash_3D( Pi, hash_lowz, hash_highz );\n    //BBS_hash_3D( Pi, hash_lowz, hash_highz );\n    //SGPP_hash_3D( Pi, hash_lowz, hash_highz );\n\n    //\n    //\t\"improved\" noise using 8 corner gradients.  Faster than the 12 mid-edge point method.\n    //\tKen mentions using diagonals like this can cause \"clumping\", but we'll live with that.\n    //\t[1,1,1]  [-1,1,1]  [1,-1,1]  [-1,-1,1]\n    //\t[1,1,-1] [-1,1,-1] [1,-1,-1] [-1,-1,-1]\n    //\n    hash_lowz -= 0.5;\n    vec4 grad_results_0_0 = vec2( Pf.x, Pf_min1.x ).xyxy * sign( hash_lowz );\n    hash_lowz = abs( hash_lowz ) - 0.25;\n    vec4 grad_results_0_1 = vec2( Pf.y, Pf_min1.y ).xxyy * sign( hash_lowz );\n    vec4 grad_results_0_2 = Pf.zzzz * sign( abs( hash_lowz ) - 0.125 );\n    vec4 grad_results_0 = grad_results_0_0 + grad_results_0_1 + grad_results_0_2;\n\n    hash_highz -= 0.5;\n    vec4 grad_results_1_0 = vec2( Pf.x, Pf_min1.x ).xyxy * sign( hash_highz );\n    hash_highz = abs( hash_highz ) - 0.25;\n    vec4 grad_results_1_1 = vec2( Pf.y, Pf_min1.y ).xxyy * sign( hash_highz );\n    vec4 grad_results_1_2 = Pf_min1.zzzz * sign( abs( hash_highz ) - 0.125 );\n    vec4 grad_results_1 = grad_results_1_0 + grad_results_1_1 + grad_results_1_2;\n\n    //\tblend the gradients and return\n    vec3 blend = Interpolation_C2( Pf );\n    vec4 res0 = mix( grad_results_0, grad_results_1, blend.z );\n    vec4 blend2 = vec4( blend.xy, vec2( 1.0 - blend.xy ) );\n    return dot( res0, blend2.zxzx * blend2.wwyy ) * (2.0 / 3.0);\t//\t(optionally) mult by (2.0/3.0) to scale to a strict -1.0->1.0 range\n#endif\n}\n\nvoid main()\n{\n    vec4 base=texture(tex,texCoord);\n    vec2 p=vec2(texCoord.x-0.5,texCoord.y-0.5);\n\n    p=p*scale;\n    p=vec2(p.x+0.5-x,p.y+0.5-y);\n\n\n\n    vec3 offset;\n    #ifdef HAS_TEX_OFFSETMAP\n        vec4 offMap=texture(texOffsetZ,texCoord);\n\n        #ifdef OFFSET_X_R\n            offset.x=offMap.r;\n        #endif\n        #ifdef OFFSET_X_G\n            offset.x=offMap.g;\n        #endif\n        #ifdef OFFSET_X_B\n            offset.x=offMap.b;\n        #endif\n\n        #ifdef OFFSET_Y_R\n            offset.y=offMap.r;\n        #endif\n        #ifdef OFFSET_Y_G\n            offset.y=offMap.g;\n        #endif\n        #ifdef OFFSET_Y_B\n            offset.y=offMap.b;\n        #endif\n\n        #ifdef OFFSET_Z_R\n            offset.z=offMap.r;\n        #endif\n        #ifdef OFFSET_Z_G\n            offset.z=offMap.g;\n        #endif\n        #ifdef OFFSET_Z_B\n            offset.z=offMap.b;\n        #endif\n        offset*=offMul;\n    #endif\n\n    float aa=texture(tex,texCoord).r;\n\n    float v = 0.0;\n    p.x*=aspect;\n\n    v+=Perlin3D(vec3(p.x,p.y,z)+offset);\n\n    #ifdef HARMONICS\n        if (harmonics >= 2.0) v += Perlin3D(vec3(p.x,p.y,z)*2.2+offset) * 0.5;\n        if (harmonics >= 3.0) v += Perlin3D(vec3(p.x,p.y,z)*4.3+offset) * 0.25;\n        if (harmonics >= 4.0) v += Perlin3D(vec3(p.x,p.y,z)*8.4+offset) * 0.125;\n        if (harmonics >= 5.0) v += Perlin3D(vec3(p.x,p.y,z)*16.5+offset) * 0.0625;\n    #endif\n\n\n    v*=rangeMul;\n    v=v*0.5+0.5;\n    float v2=v;\n    float v3=v;\n\n    #ifdef RGB\n        v2=Perlin3D(vec3(p.x+2.0,p.y+2.0,z))*0.5+0.5;\n\n        #ifdef HARMONICS\n            if (harmonics >= 2.0) v2 += Perlin3D(vec3(p.x,p.y,z)*2.2+offset) * 0.5;\n            if (harmonics >= 3.0) v2 += Perlin3D(vec3(p.x,p.y,z)*4.3+offset) * 0.25;\n            if (harmonics >= 4.0) v2 += Perlin3D(vec3(p.x,p.y,z)*8.4+offset) * 0.125;\n            if (harmonics >= 5.0) v2 += Perlin3D(vec3(p.x,p.y,z)*16.5+offset) * 0.0625;\n        #endif\n\n        v3=Perlin3D(vec3(p.x+3.0,p.y+3.0,z))*0.5+0.5;\n\n        #ifdef HARMONICS\n            if (harmonics >= 2.0) v3 += Perlin3D(vec3(p.x,p.y,z)*2.2+offset) * 0.5;\n            if (harmonics >= 3.0) v3 += Perlin3D(vec3(p.x,p.y,z)*4.3+offset) * 0.25;\n            if (harmonics >= 4.0) v3 += Perlin3D(vec3(p.x,p.y,z)*8.4+offset) * 0.125;\n            if (harmonics >= 5.0) v3 += Perlin3D(vec3(p.x,p.y,z)*16.5+offset) * 0.0625;\n        #endif\n\n    #endif\n\n    vec4 col=vec4(v,v2,v3,1.0);\n\n    float str=1.0;\n    #ifdef HAS_TEX_MASK\n        str=texture(texMask,texCoord).r;\n    #endif\n\n    col=cgl_blendPixel(base,col,amount*str);\n\n\n    #ifdef NO_CHANNEL_R\n        col.r=base.r;\n    #endif\n    #ifdef NO_CHANNEL_G\n        col.g=base.g;\n    #endif\n    #ifdef NO_CHANNEL_B\n        col.b=base.b;\n    #endif\n\n\n\n    outColor=col;\n}\n",};
+const attachments={"perlinnoise3d_frag":"UNI float z;\nUNI float x;\nUNI float y;\nUNI float scale;\nUNI float rangeMul;\nUNI float harmonics;\nUNI float aspect;\n\nIN vec2 texCoord;\nUNI sampler2D tex;\n\n#ifdef HAS_TEX_OFFSETMAP\n    UNI sampler2D texOffsetZ;\n    UNI float offMul;\n#endif\n\n#ifdef HAS_TEX_MASK\n    UNI sampler2D texMask;\n#endif\n\nUNI float amount;\n\n{{CGL.BLENDMODES3}}\n\n\nfloat Interpolation_C2( float x ) { return x * x * x * (x * (x * 6.0 - 15.0) + 10.0); }   //  6x^5-15x^4+10x^3\t( Quintic Curve.  As used by Perlin in Improved Noise.  http://mrl.nyu.edu/~perlin/paper445.pdf )\nvec2 Interpolation_C2( vec2 x ) { return x * x * x * (x * (x * 6.0 - 15.0) + 10.0); }\nvec3 Interpolation_C2( vec3 x ) { return x * x * x * (x * (x * 6.0 - 15.0) + 10.0); }\nvec4 Interpolation_C2( vec4 x ) { return x * x * x * (x * (x * 6.0 - 15.0) + 10.0); }\nvec4 Interpolation_C2_InterpAndDeriv( vec2 x ) { return x.xyxy * x.xyxy * ( x.xyxy * ( x.xyxy * ( x.xyxy * vec2( 6.0, 0.0 ).xxyy + vec2( -15.0, 30.0 ).xxyy ) + vec2( 10.0, -60.0 ).xxyy ) + vec2( 0.0, 30.0 ).xxyy ); }\nvec3 Interpolation_C2_Deriv( vec3 x ) { return x * x * (x * (x * 30.0 - 60.0) + 30.0); }\n\n\nvoid FAST32_hash_3D( vec3 gridcell, out vec4 lowz_hash, out vec4 highz_hash )\t//\tgenerates a random number for each of the 8 cell corners\n{\n    //    gridcell is assumed to be an integer coordinate\n\n    //\tTODO: \tthese constants need tweaked to find the best possible noise.\n    //\t\t\tprobably requires some kind of brute force computational searching or something....\n    const vec2 OFFSET = vec2( 50.0, 161.0 );\n    const float DOMAIN = 69.0;\n    const float SOMELARGEFLOAT = 635.298681;\n    const float ZINC = 48.500388;\n\n    //\ttruncate the domain\n    gridcell.xyz = gridcell.xyz - floor(gridcell.xyz * ( 1.0 / DOMAIN )) * DOMAIN;\n    vec3 gridcell_inc1 = step( gridcell, vec3( DOMAIN - 1.5 ) ) * ( gridcell + 1.0 );\n\n    //\tcalculate the noise\n    vec4 P = vec4( gridcell.xy, gridcell_inc1.xy ) + OFFSET.xyxy;\n    P *= P;\n    P = P.xzxz * P.yyww;\n    highz_hash.xy = vec2( 1.0 / ( SOMELARGEFLOAT + vec2( gridcell.z, gridcell_inc1.z ) * ZINC ) );\n    lowz_hash = fract( P * highz_hash.xxxx );\n    highz_hash = fract( P * highz_hash.yyyy );\n}\n\n\n\n\nvoid FAST32_hash_3D( \tvec3 gridcell,\n                        out vec4 lowz_hash_0,\n                        out vec4 lowz_hash_1,\n                        out vec4 lowz_hash_2,\n                        out vec4 highz_hash_0,\n                        out vec4 highz_hash_1,\n                        out vec4 highz_hash_2\t)\t\t//\tgenerates 3 random numbers for each of the 8 cell corners\n{\n    //    gridcell is assumed to be an integer coordinate\n\n    //\tTODO: \tthese constants need tweaked to find the best possible noise.\n    //\t\t\tprobably requires some kind of brute force computational searching or something....\n    const vec2 OFFSET = vec2( 50.0, 161.0 );\n    const float DOMAIN = 69.0;\n    const vec3 SOMELARGEFLOATS = vec3( 635.298681, 682.357502, 668.926525 );\n    const vec3 ZINC = vec3( 48.500388, 65.294118, 63.934599 );\n\n    //\ttruncate the domain\n    gridcell.xyz = gridcell.xyz - floor(gridcell.xyz * ( 1.0 / DOMAIN )) * DOMAIN;\n    vec3 gridcell_inc1 = step( gridcell, vec3( DOMAIN - 1.5 ) ) * ( gridcell + 1.0 );\n\n    //\tcalculate the noise\n    vec4 P = vec4( gridcell.xy, gridcell_inc1.xy ) + OFFSET.xyxy;\n    P *= P;\n    P = P.xzxz * P.yyww;\n    vec3 lowz_mod = vec3( 1.0 / ( SOMELARGEFLOATS.xyz + gridcell.zzz * ZINC.xyz ) );\n    vec3 highz_mod = vec3( 1.0 / ( SOMELARGEFLOATS.xyz + gridcell_inc1.zzz * ZINC.xyz ) );\n    lowz_hash_0 = fract( P * lowz_mod.xxxx );\n    highz_hash_0 = fract( P * highz_mod.xxxx );\n    lowz_hash_1 = fract( P * lowz_mod.yyyy );\n    highz_hash_1 = fract( P * highz_mod.yyyy );\n    lowz_hash_2 = fract( P * lowz_mod.zzzz );\n    highz_hash_2 = fract( P * highz_mod.zzzz );\n}\nfloat Falloff_Xsq_C1( float xsq ) { xsq = 1.0 - xsq; return xsq*xsq; }\t// ( 1.0 - x*x )^2   ( Used by Humus for lighting falloff in Just Cause 2.  GPUPro 1 )\nfloat Falloff_Xsq_C2( float xsq ) { xsq = 1.0 - xsq; return xsq*xsq*xsq; }\t// ( 1.0 - x*x )^3.   NOTE: 2nd derivative is 0.0 at x=1.0, but non-zero at x=0.0\nvec4 Falloff_Xsq_C2( vec4 xsq ) { xsq = 1.0 - xsq; return xsq*xsq*xsq; }\n\n\n//\n//\tPerlin Noise 3D  ( gradient noise )\n//\tReturn value range of -1.0->1.0\n//\thttp://briansharpe.files.wordpress.com/2011/11/perlinsample.jpg\n//\nfloat Perlin3D( vec3 P )\n{\n    //\testablish our grid cell and unit position\n    vec3 Pi = floor(P);\n    vec3 Pf = P - Pi;\n    vec3 Pf_min1 = Pf - 1.0;\n\n#if 1\n    //\n    //\tclassic noise.\n    //\trequires 3 random values per point.  with an efficent hash function will run faster than improved noise\n    //\n\n    //\tcalculate the hash.\n    //\t( various hashing methods listed in order of speed )\n    vec4 hashx0, hashy0, hashz0, hashx1, hashy1, hashz1;\n    FAST32_hash_3D( Pi, hashx0, hashy0, hashz0, hashx1, hashy1, hashz1 );\n    //SGPP_hash_3D( Pi, hashx0, hashy0, hashz0, hashx1, hashy1, hashz1 );\n\n    //\tcalculate the gradients\n    vec4 grad_x0 = hashx0 - 0.49999;\n    vec4 grad_y0 = hashy0 - 0.49999;\n    vec4 grad_z0 = hashz0 - 0.49999;\n    vec4 grad_x1 = hashx1 - 0.49999;\n    vec4 grad_y1 = hashy1 - 0.49999;\n    vec4 grad_z1 = hashz1 - 0.49999;\n    vec4 grad_results_0 = inversesqrt( grad_x0 * grad_x0 + grad_y0 * grad_y0 + grad_z0 * grad_z0 ) * ( vec2( Pf.x, Pf_min1.x ).xyxy * grad_x0 + vec2( Pf.y, Pf_min1.y ).xxyy * grad_y0 + Pf.zzzz * grad_z0 );\n    vec4 grad_results_1 = inversesqrt( grad_x1 * grad_x1 + grad_y1 * grad_y1 + grad_z1 * grad_z1 ) * ( vec2( Pf.x, Pf_min1.x ).xyxy * grad_x1 + vec2( Pf.y, Pf_min1.y ).xxyy * grad_y1 + Pf_min1.zzzz * grad_z1 );\n\n#if 1\n    //\tClassic Perlin Interpolation\n    vec3 blend = Interpolation_C2( Pf );\n    vec4 res0 = mix( grad_results_0, grad_results_1, blend.z );\n    vec4 blend2 = vec4( blend.xy, vec2( 1.0 - blend.xy ) );\n    float final = dot( res0, blend2.zxzx * blend2.wwyy );\n    final *= 1.1547005383792515290182975610039;\t\t//\t(optionally) scale things to a strict -1.0->1.0 range    *= 1.0/sqrt(0.75)\n    return final;\n#else\n    //\tClassic Perlin Surflet\n    //\thttp://briansharpe.wordpress.com/2012/03/09/modifications-to-classic-perlin-noise/\n    Pf *= Pf;\n    Pf_min1 *= Pf_min1;\n    vec4 vecs_len_sq = vec4( Pf.x, Pf_min1.x, Pf.x, Pf_min1.x ) + vec4( Pf.yy, Pf_min1.yy );\n    float final = dot( Falloff_Xsq_C2( min( vec4( 1.0 ), vecs_len_sq + Pf.zzzz ) ), grad_results_0 ) + dot( Falloff_Xsq_C2( min( vec4( 1.0 ), vecs_len_sq + Pf_min1.zzzz ) ), grad_results_1 );\n    final *= 2.3703703703703703703703703703704;\t\t//\t(optionally) scale things to a strict -1.0->1.0 range    *= 1.0/cube(0.75)\n    return final;\n#endif\n\n#else\n    //\n    //\timproved noise.\n    //\trequires 1 random value per point.  Will run faster than classic noise if a slow hashing function is used\n    //\n\n    //\tcalculate the hash.\n    //\t( various hashing methods listed in order of speed )\n    vec4 hash_lowz, hash_highz;\n    FAST32_hash_3D( Pi, hash_lowz, hash_highz );\n    //BBS_hash_3D( Pi, hash_lowz, hash_highz );\n    //SGPP_hash_3D( Pi, hash_lowz, hash_highz );\n\n    //\n    //\t\"improved\" noise using 8 corner gradients.  Faster than the 12 mid-edge point method.\n    //\tKen mentions using diagonals like this can cause \"clumping\", but we'll live with that.\n    //\t[1,1,1]  [-1,1,1]  [1,-1,1]  [-1,-1,1]\n    //\t[1,1,-1] [-1,1,-1] [1,-1,-1] [-1,-1,-1]\n    //\n    hash_lowz -= 0.5;\n    vec4 grad_results_0_0 = vec2( Pf.x, Pf_min1.x ).xyxy * sign( hash_lowz );\n    hash_lowz = abs( hash_lowz ) - 0.25;\n    vec4 grad_results_0_1 = vec2( Pf.y, Pf_min1.y ).xxyy * sign( hash_lowz );\n    vec4 grad_results_0_2 = Pf.zzzz * sign( abs( hash_lowz ) - 0.125 );\n    vec4 grad_results_0 = grad_results_0_0 + grad_results_0_1 + grad_results_0_2;\n\n    hash_highz -= 0.5;\n    vec4 grad_results_1_0 = vec2( Pf.x, Pf_min1.x ).xyxy * sign( hash_highz );\n    hash_highz = abs( hash_highz ) - 0.25;\n    vec4 grad_results_1_1 = vec2( Pf.y, Pf_min1.y ).xxyy * sign( hash_highz );\n    vec4 grad_results_1_2 = Pf_min1.zzzz * sign( abs( hash_highz ) - 0.125 );\n    vec4 grad_results_1 = grad_results_1_0 + grad_results_1_1 + grad_results_1_2;\n\n    //\tblend the gradients and return\n    vec3 blend = Interpolation_C2( Pf );\n    vec4 res0 = mix( grad_results_0, grad_results_1, blend.z );\n    vec4 blend2 = vec4( blend.xy, vec2( 1.0 - blend.xy ) );\n    return dot( res0, blend2.zxzx * blend2.wwyy ) * (2.0 / 3.0);\t//\t(optionally) mult by (2.0/3.0) to scale to a strict -1.0->1.0 range\n#endif\n}\n\nvoid main()\n{\n    vec4 base=texture(tex,texCoord);\n    vec2 p=vec2(texCoord.x-0.5,texCoord.y-0.5);\n\n    p=p*scale;\n    p=vec2(p.x+0.5-x,p.y+0.5-y);\n\n\n\n    vec3 offset;\n    #ifdef HAS_TEX_OFFSETMAP\n        vec4 offMap=texture(texOffsetZ,texCoord);\n\n        #ifdef OFFSET_X_R\n            offset.x=offMap.r;\n        #endif\n        #ifdef OFFSET_X_G\n            offset.x=offMap.g;\n        #endif\n        #ifdef OFFSET_X_B\n            offset.x=offMap.b;\n        #endif\n\n        #ifdef OFFSET_Y_R\n            offset.y=offMap.r;\n        #endif\n        #ifdef OFFSET_Y_G\n            offset.y=offMap.g;\n        #endif\n        #ifdef OFFSET_Y_B\n            offset.y=offMap.b;\n        #endif\n\n        #ifdef OFFSET_Z_R\n            offset.z=offMap.r;\n        #endif\n        #ifdef OFFSET_Z_G\n            offset.z=offMap.g;\n        #endif\n        #ifdef OFFSET_Z_B\n            offset.z=offMap.b;\n        #endif\n        offset*=offMul;\n    #endif\n\n    float aa=texture(tex,texCoord).r;\n\n    float v = 0.0;\n    p.x*=aspect;\n\n    v+=Perlin3D(vec3(p.x,p.y,z)+offset);\n\n    #ifdef HARMONICS\n        if (harmonics >= 2.0) v += Perlin3D(vec3(p.x,p.y,z)*2.2+offset) * 0.5;\n        if (harmonics >= 3.0) v += Perlin3D(vec3(p.x,p.y,z)*4.3+offset) * 0.25;\n        if (harmonics >= 4.0) v += Perlin3D(vec3(p.x,p.y,z)*8.4+offset) * 0.125;\n        if (harmonics >= 5.0) v += Perlin3D(vec3(p.x,p.y,z)*16.5+offset) * 0.0625;\n    #endif\n\n\n    v*=rangeMul;\n    v=v*0.5+0.5;\n    float v2=v;\n    float v3=v;\n\n    #ifdef RGB\n        v2=Perlin3D(vec3(p.x+2.0,p.y+2.0,z))*0.5+0.5;\n\n        #ifdef HARMONICS\n            if (harmonics >= 2.0) v2 += Perlin3D(vec3(p.x,p.y,z)*2.2+offset) * 0.5;\n            if (harmonics >= 3.0) v2 += Perlin3D(vec3(p.x,p.y,z)*4.3+offset) * 0.25;\n            if (harmonics >= 4.0) v2 += Perlin3D(vec3(p.x,p.y,z)*8.4+offset) * 0.125;\n            if (harmonics >= 5.0) v2 += Perlin3D(vec3(p.x,p.y,z)*16.5+offset) * 0.0625;\n        #endif\n\n        v3=Perlin3D(vec3(p.x+3.0,p.y+3.0,z))*0.5+0.5;\n\n        #ifdef HARMONICS\n            if (harmonics >= 2.0) v3 += Perlin3D(vec3(p.x,p.y,z)*2.2+offset) * 0.5;\n            if (harmonics >= 3.0) v3 += Perlin3D(vec3(p.x,p.y,z)*4.3+offset) * 0.25;\n            if (harmonics >= 4.0) v3 += Perlin3D(vec3(p.x,p.y,z)*8.4+offset) * 0.125;\n            if (harmonics >= 5.0) v3 += Perlin3D(vec3(p.x,p.y,z)*16.5+offset) * 0.0625;\n        #endif\n\n    #endif\n\n    vec4 col=vec4(v,v2,v3,1.0);\n\n    float str=1.0;\n    #ifdef HAS_TEX_MASK\n        str=texture(texMask,texCoord).r;\n    #endif\n\n    #ifdef RANGE_MIN1\n        col=col*2.0-1.0;\n    #endif\n\n    col=cgl_blendPixel(base,col,amount*str);\n\n\n    #ifdef NO_CHANNEL_R\n        col.r=base.r;\n    #endif\n    #ifdef NO_CHANNEL_G\n        col.g=base.g;\n    #endif\n    #ifdef NO_CHANNEL_B\n        col.b=base.b;\n    #endif\n\n\n\n    outColor=col;\n}\n",};
 const
     render = op.inTrigger("render"),
     inTexMask = op.inTexture("Mask"),
@@ -13441,6 +12958,7 @@ const
     inMode = op.inSwitch("Color", ["Mono", "RGB", "R", "G", "B"], "Mono"),
     scale = op.inValue("Scale", 8),
     rangeMul = op.inValue("Multiply", 1),
+    valueRange = op.inSwitch("Value", ["0-1", "-1-1"], "0-1"),
     inHarmonics = op.inSwitch("Harmonics", ["1", "2", "3", "4", "5"], "1"),
     x = op.inValue("X", 0),
     y = op.inValue("Y", 0),
@@ -13490,12 +13008,13 @@ inHarmonics.onChange = () =>
     shader.toggleDefine("HARMONICS", inHarmonics.get() > 1);
 };
 
-offsetX.onChange =
-offsetY.onChange =
-offsetZ.onChange =
-inTexMask.onChange =
-inMode.onChange =
-inTexOffsetZ.onChange = updateDefines;
+valueRange.onChange =
+    offsetX.onChange =
+    offsetY.onChange =
+    offsetZ.onChange =
+    inTexMask.onChange =
+    inMode.onChange =
+    inTexOffsetZ.onChange = updateDefines;
 updateDefines();
 
 function updateDefines()
@@ -13518,6 +13037,8 @@ function updateDefines()
     shader.toggleDefine("OFFSET_Z_R", offsetZ.get() == "R");
     shader.toggleDefine("OFFSET_Z_G", offsetZ.get() == "G");
     shader.toggleDefine("OFFSET_Z_B", offsetZ.get() == "B");
+
+    shader.toggleDefine("RANGE_MIN1", valueRange.get() == "-1-1");
 
     offsetX.setUiAttribs({ "greyout": !inTexOffsetZ.isLinked() });
     offsetY.setUiAttribs({ "greyout": !inTexOffsetZ.isLinked() });
@@ -13611,6 +13132,159 @@ CABLES.OPS["0efefbb7-461c-4a34-b7fd-28b89b0ceb3f"]={f:Ops.Value.MaximumSafeInteg
 
 // **************************************************************
 // 
+// Ops.Devices.Mouse.MouseButtons
+// 
+// **************************************************************
+
+Ops.Devices.Mouse.MouseButtons = function()
+{
+CABLES.Op.apply(this,arguments);
+const op=this;
+const attachments={};
+const
+    mouseClickLeft = op.outTrigger("Click Left"),
+    mouseClickRight = op.outTrigger("Click Right"),
+    mouseDoubleClick = op.outTrigger("Double Click"),
+    mouseDownLeft = op.outBoolNum("Button pressed Left", false),
+    mouseDownMiddle = op.outBoolNum("Button pressed Middle", false),
+    mouseDownRight = op.outBoolNum("Button pressed Right", false),
+    triggerMouseDownLeft = op.outTrigger("Mouse Down Left"),
+    triggerMouseDownMiddle = op.outTrigger("Mouse Down Middle"),
+    triggerMouseDownRight = op.outTrigger("Mouse Down Right"),
+    triggerMouseUpLeft = op.outTrigger("Mouse Up Left"),
+    triggerMouseUpMiddle = op.outTrigger("Mouse Up Middle"),
+    triggerMouseUpRight = op.outTrigger("Mouse Up Right"),
+    area = op.inValueSelect("Area", ["Canvas", "Document"], "Canvas"),
+    active = op.inValueBool("Active", true);
+
+const cgl = op.patch.cgl;
+let listenerElement = null;
+area.onChange = updateListeners;
+op.onDelete = removeListeners;
+updateListeners();
+
+function onMouseDown(e)
+{
+    if (e.which == 1)
+    {
+        mouseDownLeft.set(true);
+        triggerMouseDownLeft.trigger();
+    }
+    else if (e.which == 2)
+    {
+        mouseDownMiddle.set(true);
+        triggerMouseDownMiddle.trigger();
+    }
+    else if (e.which == 3)
+    {
+        mouseDownRight.set(true);
+        triggerMouseDownRight.trigger();
+    }
+}
+
+function onMouseUp(e)
+{
+    if (e.which == 1)
+    {
+        mouseDownLeft.set(false);
+        triggerMouseUpLeft.trigger();
+    }
+    else if (e.which == 2)
+    {
+        mouseDownMiddle.set(false);
+        triggerMouseUpMiddle.trigger();
+    }
+    else if (e.which == 3)
+    {
+        mouseDownRight.set(false);
+        triggerMouseUpRight.trigger();
+    }
+}
+
+function onClickRight(e)
+{
+    mouseClickRight.trigger();
+    e.preventDefault();
+}
+
+function onDoubleClick(e)
+{
+    mouseDoubleClick.trigger();
+}
+
+function onmouseclick(e)
+{
+    mouseClickLeft.trigger();
+}
+
+function ontouchstart(event)
+{
+    if (event.touches && event.touches.length > 0)
+    {
+        event.touches[0].which = 1;
+        onMouseDown(event.touches[0]);
+    }
+}
+
+function ontouchend(event)
+{
+    onMouseUp({ "which": 1 });
+}
+
+function removeListeners()
+{
+    if (!listenerElement) return;
+    listenerElement.removeEventListener("touchend", ontouchend);
+    listenerElement.removeEventListener("touchcancel", ontouchend);
+    listenerElement.removeEventListener("touchstart", ontouchstart);
+    listenerElement.removeEventListener("dblclick", onDoubleClick);
+    listenerElement.removeEventListener("click", onmouseclick);
+    listenerElement.removeEventListener("mousedown", onMouseDown);
+    listenerElement.removeEventListener("mouseup", onMouseUp);
+    listenerElement.removeEventListener("contextmenu", onClickRight);
+    listenerElement.removeEventListener("mouseleave", onMouseUp);
+    listenerElement = null;
+}
+
+function addListeners()
+{
+    if (listenerElement)removeListeners();
+
+    listenerElement = cgl.canvas;
+    if (area.get() == "Document") listenerElement = document.body;
+
+    listenerElement.addEventListener("touchend", ontouchend);
+    listenerElement.addEventListener("touchcancel", ontouchend);
+    listenerElement.addEventListener("touchstart", ontouchstart);
+    listenerElement.addEventListener("dblclick", onDoubleClick);
+    listenerElement.addEventListener("click", onmouseclick);
+    listenerElement.addEventListener("mousedown", onMouseDown);
+    listenerElement.addEventListener("mouseup", onMouseUp);
+    listenerElement.addEventListener("contextmenu", onClickRight);
+    listenerElement.addEventListener("mouseleave", onMouseUp);
+}
+
+op.onLoaded = updateListeners;
+
+active.onChange = updateListeners;
+
+function updateListeners()
+{
+    removeListeners();
+    if (active.get()) addListeners();
+}
+
+
+};
+
+Ops.Devices.Mouse.MouseButtons.prototype = new CABLES.Op();
+CABLES.OPS["c7e5e545-c8a1-4fef-85c2-45422b947f0d"]={f:Ops.Devices.Mouse.MouseButtons,objName:"Ops.Devices.Mouse.MouseButtons"};
+
+
+
+
+// **************************************************************
+// 
 // Ops.String.FreezeString
 // 
 // **************************************************************
@@ -13695,16 +13369,16 @@ const
 
 exe.onTriggered = exec;
 
-let b = false;
+// let b = false;
 
-boolean.onChange = () =>
-{
-    b = boolean.get();
-};
+// boolean.onChange = () =>
+// {
+//     b = boolean.get();
+// };
 
 function exec()
 {
-    if (b) triggerThen.trigger();
+    if (boolean.get()) triggerThen.trigger();
     else triggerElse.trigger();
 }
 
@@ -14388,6 +14062,962 @@ op.renderVizLayer = (ctx, layer) =>
 
 Ops.Ui.VizGraph.prototype = new CABLES.Op();
 CABLES.OPS["13c54eb4-60ef-4b9c-8425-d52a431f5c87"]={f:Ops.Ui.VizGraph,objName:"Ops.Ui.VizGraph"};
+
+
+
+
+// **************************************************************
+// 
+// Ops.Gl.DownloadTexture_v2
+// 
+// **************************************************************
+
+Ops.Gl.DownloadTexture_v2 = function()
+{
+CABLES.Op.apply(this,arguments);
+const op=this;
+const attachments={};
+const
+    inTex = op.inTexture("Texture"),
+    start = op.inTriggerButton("Download"),
+    fileName = op.inString("Filename", "screenshot"),
+    outFinished = op.outBoolNum("Finished");
+
+const gl = op.patch.cgl.gl;
+let fb = null;
+
+start.onTriggered = function ()
+{
+    if (!inTex.get() || !inTex.get().tex) return;
+    outFinished.set(false);
+
+    const width = inTex.get().width;
+    const height = inTex.get().height;
+
+    if (inTex.get().textureType == CGL.Texture.TYPE_FLOAT) op.setUiError("fptex", "Texture is more than 8 bit, not possible to create files with high precision");
+    else op.setUiError("fptex", null);
+
+    if (!fb)fb = gl.createFramebuffer();
+
+    gl.bindFramebuffer(gl.FRAMEBUFFER, fb);
+    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, inTex.get().tex, 0);
+
+    const canRead = (gl.checkFramebufferStatus(gl.FRAMEBUFFER) == gl.FRAMEBUFFER_COMPLETE);
+
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+
+    if (!canRead)
+    {
+        outFinished.set(true);
+        op.logError("cannot read texture!");
+        return;
+    }
+
+    gl.bindFramebuffer(gl.FRAMEBUFFER, fb);
+    const data = new Uint8Array(width * height * 4);
+    gl.readPixels(0, 0, width, height, gl.RGBA, gl.UNSIGNED_BYTE, data);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+
+    // Create a 2D canvas to store the result
+    const canvas = document.createElement("canvas");
+    canvas.width = width;
+    canvas.height = height;
+    const context = canvas.getContext("2d");
+
+    // Copy the pixels to a 2D canvas
+    const imageData = context.createImageData(width, height);
+    imageData.data.set(data);
+
+    const data2 = imageData.data;
+
+    // flip image
+    Array.from({ "length": height }, (val, i) => { return data2.slice(i * width * 4, (i + 1) * width * 4); })
+        .forEach((val, i) => { return data2.set(val, (height - i - 1) * width * 4); });
+
+    context.putImageData(imageData, 0, 0);
+
+    dataURIToBlob(canvas.toDataURL(),
+        function (blob)
+        {
+            const userAgent = navigator.userAgent || navigator.vendor || window.opera;
+
+            if (/iPad|iPhone|iPod/.test(userAgent) && !window.MSStream)
+            {
+                const reader = new FileReader();
+                // var out = new Blob([byte], {type: "application/pdf"});
+                reader.onload = function (e)
+                {
+                    window.location.href = reader.result;
+                //   window.open(reader.result);
+                };
+                reader.readAsDataURL(blob);
+            }
+            else
+            {
+                const anchor = document.createElement("a");
+                anchor.download = fileName.get() + ".png";
+                // anchor.target='_blank';
+                anchor.href = URL.createObjectURL(blob);
+                document.body.appendChild(anchor);
+                anchor.click();
+            }
+            outFinished.set(true);
+        });
+};
+
+function dataURIToBlob(dataURI, callback)
+{
+    const binStr = atob(dataURI.split(",")[1]),
+        len = binStr.length,
+        arr = new Uint8Array(len);
+    for (let i = 0; i < len; i++) arr[i] = binStr.charCodeAt(i);
+    callback(new Blob([arr], { "type": "image/png" }));
+}
+
+
+};
+
+Ops.Gl.DownloadTexture_v2.prototype = new CABLES.Op();
+CABLES.OPS["00d2a6ea-5843-43d0-9428-dbc47c112e6e"]={f:Ops.Gl.DownloadTexture_v2,objName:"Ops.Gl.DownloadTexture_v2"};
+
+
+
+
+// **************************************************************
+// 
+// Ops.Gl.TextureEffects.ImageComposeSnapshot
+// 
+// **************************************************************
+
+Ops.Gl.TextureEffects.ImageComposeSnapshot = function()
+{
+CABLES.Op.apply(this,arguments);
+const op=this;
+const attachments={};
+const
+    render = op.inTrigger("Update"),
+    trigger = op.outTrigger("trigger"),
+    outTex = op.outTexture("Texture");
+
+const cgl = op.patch.cgl;
+let tc = new CGL.CopyTexture(cgl, "textureThief", {});
+let fp = false;
+let wrap = -1;
+let filter = -1;
+
+render.onTriggered = () =>
+{
+    if (!CGL.TextureEffect.checkOpInEffect(op)) return;
+
+    const effect = cgl.currentTextureEffect;
+    effect.endEffect();
+
+    const shouldFp = cgl.currentTextureEffect.getCurrentSourceTexture().isFloatingPoint();
+    const shouldWrap = cgl.currentTextureEffect.getCurrentSourceTexture().wrap;
+    const shouldFilter = cgl.currentTextureEffect.getCurrentSourceTexture().filter;
+
+    if (fp != shouldFp || wrap != shouldWrap || filter != shouldFilter)
+    {
+        tc = new CGL.CopyTexture(cgl, "textureThief",
+            {
+                "isFloatingPointTexture": shouldFp,
+                "wrap": shouldWrap,
+                "filter": shouldFilter
+            });
+        fp = shouldFp;
+        wrap = shouldWrap;
+        filter = shouldFilter;
+    }
+
+    const vp = cgl.getViewPort();
+    outTex.set(CGL.Texture.getEmptyTexture(cgl));
+
+    const tx = cgl.currentTextureEffect.getCurrentSourceTexture();
+    outTex.set(tc.copy(tx));
+
+    effect.continueEffect();
+
+    trigger.trigger();
+};
+
+
+};
+
+Ops.Gl.TextureEffects.ImageComposeSnapshot.prototype = new CABLES.Op();
+CABLES.OPS["e15c0803-02bb-4783-9d75-e75abd70d910"]={f:Ops.Gl.TextureEffects.ImageComposeSnapshot,objName:"Ops.Gl.TextureEffects.ImageComposeSnapshot"};
+
+
+
+
+// **************************************************************
+// 
+// Ops.Value.NumberSwitchBoolean
+// 
+// **************************************************************
+
+Ops.Value.NumberSwitchBoolean = function()
+{
+CABLES.Op.apply(this,arguments);
+const op=this;
+const attachments={};
+const
+    inBool = op.inValueBool("Boolean"),
+    valFalse = op.inValue("Value false", 0),
+    valTrue = op.inValue("Value true", 1),
+    outVal = op.outNumber("Result");
+
+inBool.onChange =
+    valTrue.onChange =
+    valFalse.onChange = update;
+
+op.setPortGroup("Output Values", [valTrue, valFalse]);
+
+function update()
+{
+    if (inBool.get()) outVal.set(valTrue.get());
+    else outVal.set(valFalse.get());
+}
+
+
+};
+
+Ops.Value.NumberSwitchBoolean.prototype = new CABLES.Op();
+CABLES.OPS["637c5fa8-840d-4535-96ab-3d27b458a8ba"]={f:Ops.Value.NumberSwitchBoolean,objName:"Ops.Value.NumberSwitchBoolean"};
+
+
+
+
+// **************************************************************
+// 
+// Ops.Gl.Textures.ColorTexture
+// 
+// **************************************************************
+
+Ops.Gl.Textures.ColorTexture = function()
+{
+CABLES.Op.apply(this,arguments);
+const op=this;
+const attachments={};
+const
+    r = op.inValueSlider("r", Math.random()),
+    g = op.inValueSlider("g", Math.random()),
+    b = op.inValueSlider("b", Math.random()),
+    a = op.inValueSlider("a", 1.0),
+    texOut = op.outTexture("texture_out");
+
+r.setUiAttribs({ "colorPick": true });
+const cgl = op.patch.cgl;
+let fb = null;
+let wasFp = false;
+
+r.onChange =
+    g.onChange =
+    b.onChange =
+    a.onChange = () => { cgl.addNextFrameOnceCallback(render); };
+
+cgl.addNextFrameOnceCallback(render);
+
+function render()
+{
+    const fp = wasFp || r.get() < 0.0 || r.get() > 1.0 || g.get() < 0.0 || g.get() > 1.0 || b.get() < 0.0 || b.get() > 1.0;
+
+    if (!fb || wasFp != fp)
+    {
+        if (fb)fb.dispose();
+        if (cgl.glVersion == 1) fb = new CGL.Framebuffer(cgl, 8, 8, { "name": "colorTexture" });
+        else fb = new CGL.Framebuffer2(cgl, 8, 8, { "name": "colorTexture", "depth": false, "isFloatingPointTexture": fp });
+        fb.setFilter(CGL.Texture.FILTER_LINEAR);
+        wasFp = fp;
+    }
+
+    fb.renderStart();
+    cgl.gl.clearColor(r.get(), g.get(), b.get(), a.get());
+    cgl.gl.clear(cgl.gl.COLOR_BUFFER_BIT);
+    fb.renderEnd();
+    texOut.setRef(fb.getTextureColor());
+}
+
+op.onDelete = () =>
+{
+    fb.dispose();
+};
+
+
+};
+
+Ops.Gl.Textures.ColorTexture.prototype = new CABLES.Op();
+CABLES.OPS["59b94270-0364-4c0f-a9fc-ba2561696a23"]={f:Ops.Gl.Textures.ColorTexture,objName:"Ops.Gl.Textures.ColorTexture"};
+
+
+
+
+// **************************************************************
+// 
+// Ops.Gl.Textures.SwitchTextures_v2
+// 
+// **************************************************************
+
+Ops.Gl.Textures.SwitchTextures_v2 = function()
+{
+CABLES.Op.apply(this,arguments);
+const op=this;
+const attachments={};
+const
+    exec = op.inTrigger("exec"),
+    num = this.inValueInt("num"),
+    defaultTransparent = op.inValueBool("Default Texture Transparent", true),
+    next = op.outTrigger("Next"),
+    textureOut = this.outTexture("texture");
+
+const cgl = op.patch.cgl;
+const texturePorts = [];
+let index = 0;
+let lastIndex = -1;
+let tempTexture = CGL.Texture.getEmptyTexture(cgl);
+
+op.toWorkPortsNeedToBeLinked(exec);
+exec.onTriggered = function () { updateTexture(); next.trigger(); };
+
+
+defaultTransparent.onChange = function ()
+{
+    if (defaultTransparent.get()) tempTexture = CGL.Texture.getEmptyTexture(cgl);
+    else tempTexture = CGL.Texture.getTempTexture(cgl);
+
+    updateTexture(true);
+};
+
+for (let i = 0; i < 16; i++)
+{
+    const tex = op.inTexture("texture" + i);
+    texturePorts.push(tex);
+    tex.onChange = forceUpdateTexture;
+}
+
+function forceUpdateTexture()
+{
+    updateTexture(true);
+}
+
+function updateTexture(force)
+{
+    index = parseInt(num.get(), 10);
+    if (!force)
+    {
+        if (index == lastIndex) return;
+        if (index != index) return;
+    }
+    if (
+	    isNaN(index) ||
+	    index < 0 ||
+	    index > texturePorts.length - 1
+    )
+        index = 0;
+
+    if (texturePorts[index].get()) textureOut.set(texturePorts[index].get());
+    else textureOut.set(tempTexture);
+
+    lastIndex = index;
+}
+
+
+};
+
+Ops.Gl.Textures.SwitchTextures_v2.prototype = new CABLES.Op();
+CABLES.OPS["a82ae429-ac07-4760-882b-595a857c7ae0"]={f:Ops.Gl.Textures.SwitchTextures_v2,objName:"Ops.Gl.Textures.SwitchTextures_v2"};
+
+
+
+
+// **************************************************************
+// 
+// Ops.Trigger.TriggerString
+// 
+// **************************************************************
+
+Ops.Trigger.TriggerString = function()
+{
+CABLES.Op.apply(this,arguments);
+const op=this;
+const attachments={};
+const
+    exec = op.inTriggerButton("Trigger"),
+    inString = op.inString("String", ""),
+    next = op.outTrigger("Next"),
+    outString = op.outString("Result");
+
+outString.changeAlways = true;
+exec.onTriggered = function ()
+{
+    outString.set(inString.get());
+    next.trigger();
+};
+
+
+};
+
+Ops.Trigger.TriggerString.prototype = new CABLES.Op();
+CABLES.OPS["217482b8-2ee6-4609-b7ad-4550e6aaa371"]={f:Ops.Trigger.TriggerString,objName:"Ops.Trigger.TriggerString"};
+
+
+
+
+// **************************************************************
+// 
+// Ops.Boolean.Or
+// 
+// **************************************************************
+
+Ops.Boolean.Or = function()
+{
+CABLES.Op.apply(this,arguments);
+const op=this;
+const attachments={};
+const
+    bool0 = op.inValueBool("bool 1"),
+    bool1 = op.inValueBool("bool 2"),
+    bool2 = op.inValueBool("bool 3"),
+    bool3 = op.inValueBool("bool 4"),
+    bool4 = op.inValueBool("bool 5"),
+    bool5 = op.inValueBool("bool 6"),
+    bool6 = op.inValueBool("bool 7"),
+    bool7 = op.inValueBool("bool 8"),
+    bool8 = op.inValueBool("bool 9"),
+    bool9 = op.inValueBool("bool 10"),
+    result = op.outBoolNum("result");
+
+bool0.onChange =
+    bool1.onChange =
+    bool2.onChange =
+    bool3.onChange =
+    bool4.onChange =
+    bool5.onChange =
+    bool6.onChange =
+    bool7.onChange =
+    bool8.onChange =
+    bool9.onChange = exec;
+
+function exec()
+{
+    result.set(bool0.get() || bool1.get() || bool2.get() || bool3.get() || bool4.get() || bool5.get() || bool6.get() || bool7.get() || bool8.get() || bool9.get());
+}
+
+
+};
+
+Ops.Boolean.Or.prototype = new CABLES.Op();
+CABLES.OPS["b3b36238-4592-4e11-afe3-8361c4fd6be5"]={f:Ops.Boolean.Or,objName:"Ops.Boolean.Or"};
+
+
+
+
+// **************************************************************
+// 
+// Ops.Devices.TouchScreen
+// 
+// **************************************************************
+
+Ops.Devices.TouchScreen = function()
+{
+CABLES.Op.apply(this,arguments);
+const op=this;
+const attachments={};
+const
+    disableScaleWeb = op.inValueBool("Disable Scaling", true),
+    disableDefault = op.inValueBool("Disable Scroll", true),
+    hdpi = op.inValueBool("HDPI Coordinates", false),
+    active = op.inValueBool("Active", true),
+
+    outTouched = op.outNumber("Touched", false),
+    numFingers = op.outNumber("Fingers", 0),
+
+    f1x = op.outNumber("Finger 1 X", 0),
+    f1y = op.outNumber("Finger 1 Y", 0),
+    f1f = op.outNumber("Finger 1 Force", 0),
+
+    f2x = op.outNumber("Finger 2 X", 0),
+    f2y = op.outNumber("Finger 2 Y", 0),
+    f2f = op.outNumber("Finger 2 Force", 0),
+    area = op.inSwitch("Area", ["Canvas", "Document"], "Canvas"),
+
+    outEvents = op.outArray("Events"),
+    normalize = op.inValueBool("Normalize Coordinates"),
+    flipY = op.inValueBool("Flip Y"),
+    outTouchStart = op.outTrigger("Touch Start"),
+    outTouchEnd = op.outTrigger("Touch End");
+
+area.onChange = updateArea;
+
+function setPos(event)
+{
+    if (event.touches && event.touches.length > 0)
+    {
+        var rect = event.target.getBoundingClientRect();
+        var x = event.touches[0].clientX - event.touches[0].target.offsetLeft;
+        var y = event.touches[0].clientY - event.touches[0].target.offsetTop;
+
+        if (flipY.get()) y = rect.height - y;
+
+        if (hdpi.get())
+        {
+            x *= (op.patch.cgl.pixelDensity || 1);
+            y *= (op.patch.cgl.pixelDensity || 1);
+        }
+
+        if (normalize.get())
+        {
+            x = (x / rect.width * 2.0 - 1.0);
+            y = (y / rect.height * 2.0 - 1.0);
+        }
+
+        f1x.set(x);
+        f1y.set(y);
+
+        if (event.touches[0].force)f1f.set(event.touches[0].force);
+    }
+
+    if (event.touches && event.touches.length > 1)
+    {
+        var rect = event.target.getBoundingClientRect();
+        var x = event.touches[1].clientX - event.touches[1].target.offsetLeft;
+        var y = event.touches[1].clientY - event.touches[1].target.offsetTop;
+
+        if (hdpi.get())
+        {
+            x *= (op.patch.cgl.pixelDensity || 1);
+            y *= (op.patch.cgl.pixelDensity || 1);
+        }
+
+        if (normalize.get())
+        {
+            x = (x / rect.width * 2.0 - 1.0);
+            y = (y / rect.height * 2.0 - 1.0);
+        }
+
+        f2x.set(x);
+        f2y.set(y);
+
+        if (event.touches[1].force)f2f.set(event.touches[1].force);
+    }
+    outEvents.set(event.touches);
+}
+
+const ontouchstart = function (event)
+{
+    outTouched.set(true);
+    setPos(event);
+    numFingers.set(event.touches.length);
+    outTouchStart.trigger();
+};
+
+const ontouchend = function (event)
+{
+    outTouched.set(false);
+    f1f.set(0);
+    f2f.set(0);
+    setPos(event);
+
+    numFingers.set(event.touches.length);
+    outTouchEnd.trigger();
+};
+
+const ontouchmove = function (event)
+{
+    setPos(event);
+    numFingers.set(event.touches.length);
+    if (disableDefault.get() || (disableScaleWeb.get() && event.scale !== 1))
+    {
+        event.preventDefault();
+        document.body.style["touch-action"] = "none";
+    }
+    else
+    {
+        document.body.style["touch-action"] = "initial";
+    }
+};
+
+const cgl = op.patch.cgl;
+let listenerElement = null;
+function addListeners()
+{
+    listenerElement.addEventListener("touchmove", ontouchmove, { "passive": true });
+    listenerElement.addEventListener("touchstart", ontouchstart, { "passive": true });
+    listenerElement.addEventListener("touchend", ontouchend, { "passive": true });
+}
+
+function updateArea()
+{
+    removeListeners();
+
+    if (area.get() == "Document") listenerElement = document;
+    else listenerElement = cgl.canvas;
+
+    if (active.get()) addListeners();
+}
+
+function removeListeners()
+{
+    if (listenerElement)
+    {
+        listenerElement.removeEventListener("touchmove", ontouchmove);
+        listenerElement.removeEventListener("touchstart", ontouchstart);
+        listenerElement.removeEventListener("touchend", ontouchend);
+    }
+    listenerElement = null;
+}
+
+active.onChange = function ()
+{
+    updateArea();
+};
+
+updateArea();
+
+
+};
+
+Ops.Devices.TouchScreen.prototype = new CABLES.Op();
+CABLES.OPS["cedffacf-0f09-4342-bd21-540bd9c8037d"]={f:Ops.Devices.TouchScreen,objName:"Ops.Devices.TouchScreen"};
+
+
+
+
+// **************************************************************
+// 
+// Ops.Trigger.TriggerIfIncreased
+// 
+// **************************************************************
+
+Ops.Trigger.TriggerIfIncreased = function()
+{
+CABLES.Op.apply(this,arguments);
+const op=this;
+const attachments={};
+const
+    value = op.inFloat("Value"),
+    trigger = op.outTrigger("Trigger");
+
+let lastValue = -Number.MAX_VALUE;
+
+value.onChange = function ()
+{
+    const v = value.get();
+    if (v > lastValue)
+    {
+        trigger.trigger();
+    }
+    lastValue = v;
+};
+
+
+};
+
+Ops.Trigger.TriggerIfIncreased.prototype = new CABLES.Op();
+CABLES.OPS["bc820891-48c7-4287-9b5e-4196e192741b"]={f:Ops.Trigger.TriggerIfIncreased,objName:"Ops.Trigger.TriggerIfIncreased"};
+
+
+
+
+// **************************************************************
+// 
+// Ops.Patch.Pw01AEC.TimeLinePlayer_CustomFPS
+// 
+// **************************************************************
+
+Ops.Patch.Pw01AEC.TimeLinePlayer_CustomFPS = function()
+{
+CABLES.Op.apply(this,arguments);
+const op=this;
+const attachments={};
+const
+    play = op.inTriggerButton("Play"),
+    pause = op.inTriggerButton("Pause"),
+    rewind = op.inTriggerButton("rewind"),
+    setTime = op.inFloat("Set current time", 0),
+    setFPS = op.inFloat("Set ideal FPS", 30),
+
+    outPlayTrigger = op.outTrigger("play trigger"),
+    outPauseTrigger = op.outTrigger("pause trigger"),
+    outrewindTrigger = op.outTrigger("rewind trigger"),
+    isPlaying = op.outBool("is Playing"),
+    outSetTimeTrigger = op.outNumber("set time (seconds)"),
+    currentTime = op.outNumber("current time"),
+    currentFrame = op.outNumber("current frame");
+
+play.onTriggered = function ()
+{
+    op.patch.timer.play();
+
+    op.patch.timer.setTime(setTime.get());
+    outSetTimeTrigger.set(setTime.get());
+    outPlayTrigger.trigger();
+};
+
+pause.onTriggered = function ()
+{
+    op.patch.timer.pause();
+    outPauseTrigger.trigger();
+};
+
+op.onAnimFrame = function (time)
+{
+    currentFrame.set(Math.floor(time * setFPS.get()));
+    currentTime.set(time);
+    isPlaying.set(op.patch.timer.isPlaying());
+};
+
+rewind.onTriggered = function ()
+{
+    op.patch.timer.setTime(0);
+    outrewindTrigger.trigger();
+};
+
+
+};
+
+Ops.Patch.Pw01AEC.TimeLinePlayer_CustomFPS.prototype = new CABLES.Op();
+CABLES.OPS["472dda32-6376-4907-a0f9-597e3fc6b556"]={f:Ops.Patch.Pw01AEC.TimeLinePlayer_CustomFPS,objName:"Ops.Patch.Pw01AEC.TimeLinePlayer_CustomFPS"};
+
+
+
+
+// **************************************************************
+// 
+// Ops.Patch.Pw01AEC.NamedConsoleLog
+// 
+// **************************************************************
+
+Ops.Patch.Pw01AEC.NamedConsoleLog = function()
+{
+CABLES.Op.apply(this,arguments);
+const op=this;
+const attachments={};
+const
+    inNameString=op.inString("Name String",""),
+    inNumber=op.inFloat("Number",0),
+    inString=op.inString("String","");
+
+op.setUiAttrib({ "widthOnlyGrow": true });
+
+
+inNumber.onChange=function()
+{
+    console.log(inNameString.get(), inNumber.get());
+};
+
+inString.onChange=function()
+{
+    console.log(inNameString.get(), inString.get());
+};
+
+inNameString.onChange=function()
+{
+    let n = inNameString.get();
+    if (op.patch.isEditorMode())
+    {
+        let str = "";
+        if (n === null)str = "null";
+        else if (n === undefined)str = "undefined";
+        else if (isNumeric(str))
+        {
+            str = "" + Math.round(n * 10000) / 10000;
+
+            if (str[0] != "-")str = " " + str;
+        }
+        else {
+            str = n
+        }
+
+        op.setUiAttribs({ "extendTitle": str });
+    }
+}
+
+function isNumeric(str) {
+  if (typeof str != "string") return false // we only process strings!
+  return !isNaN(str) && // use type coercion to parse the _entirety_ of the string (`parseFloat` alone does not do this)...
+         !isNaN(parseFloat(str)) // ...and ensure strings of whitespace fail
+}
+
+};
+
+Ops.Patch.Pw01AEC.NamedConsoleLog.prototype = new CABLES.Op();
+CABLES.OPS["59d1a055-d7aa-48d6-b33f-481a6e31ae2b"]={f:Ops.Patch.Pw01AEC.NamedConsoleLog,objName:"Ops.Patch.Pw01AEC.NamedConsoleLog"};
+
+
+
+
+// **************************************************************
+// 
+// Ops.Gl.SaveScreenShot_v3
+// 
+// **************************************************************
+
+Ops.Gl.SaveScreenShot_v3 = function()
+{
+CABLES.Op.apply(this,arguments);
+const op=this;
+const attachments={};
+const
+    filename = op.inString("Filename", "cables"),
+    exe = op.inTriggerButton("Screenshot"),
+    outNext = op.outTrigger("Finished");
+
+
+const cgl = op.patch.cgl;
+
+exe.onTriggered = function ()
+{
+    cgl.saveScreenshot(
+        filename.get(),
+        function ()
+        {
+            outNext.trigger();
+
+            op.patch.resume();
+        }
+    );
+};
+
+
+
+};
+
+Ops.Gl.SaveScreenShot_v3.prototype = new CABLES.Op();
+CABLES.OPS["76843a4d-947f-41ca-9c8f-0faa6ce7380a"]={f:Ops.Gl.SaveScreenShot_v3,objName:"Ops.Gl.SaveScreenShot_v3"};
+
+
+
+
+// **************************************************************
+// 
+// Ops.Patch.Pw01AEC.FxHashPreview
+// 
+// **************************************************************
+
+Ops.Patch.Pw01AEC.FxHashPreview = function()
+{
+CABLES.Op.apply(this,arguments);
+const op=this;
+const attachments={};
+if (!CABLES.fakefxhash && !window.fxhash || CABLES.fakefxhash)
+{
+    CABLES.fakefxhash = true;
+}
+
+const
+    isReal = !CABLES.fakefxhash;
+
+const
+    inTriggerPreview = op.inTriggerButton("Trigger Preview"),
+    inTriggerReset = op.inTriggerButton("Reset"),
+    outExeTrigger = op.outTrigger("Then"),
+    outEmbedded = op.outBoolNum("fxhash environment", isReal);
+
+let called = false;
+const outCalled = op.outBoolNum("Function Called", called)
+inTriggerReset.onTriggered = () => {
+    called = false
+    outCalled.set(called)
+}
+
+inTriggerPreview.onTriggered = () =>
+{
+    if (called) return
+
+    if (isReal && window.fxpreview) {
+        window.fxpreview()
+        console.log("FxHashPreview called!");
+    } else {
+        console.warn("No FxHash snippet! No preview!");
+    }
+
+    called = true
+    outCalled.set(called)
+    outExeTrigger.trigger()
+};
+
+
+
+};
+
+Ops.Patch.Pw01AEC.FxHashPreview.prototype = new CABLES.Op();
+CABLES.OPS["77c23472-3830-464b-a1fe-14b534c6d3c0"]={f:Ops.Patch.Pw01AEC.FxHashPreview,objName:"Ops.Patch.Pw01AEC.FxHashPreview"};
+
+
+
+
+// **************************************************************
+// 
+// Ops.TimeLine.TimeLineRewind
+// 
+// **************************************************************
+
+Ops.TimeLine.TimeLineRewind = function()
+{
+CABLES.Op.apply(this,arguments);
+const op=this;
+const attachments={};
+const
+    exe = op.inTriggerButton("exe"),
+    next = op.outTrigger("Next");
+
+exe.onTriggered = function ()
+{
+    op.patch.timer.setTime(0);
+    next.trigger();
+};
+
+
+};
+
+Ops.TimeLine.TimeLineRewind.prototype = new CABLES.Op();
+CABLES.OPS["d3408604-858c-4226-8d4c-1ef669956f35"]={f:Ops.TimeLine.TimeLineRewind,objName:"Ops.TimeLine.TimeLineRewind"};
+
+
+
+
+// **************************************************************
+// 
+// Ops.Array.ArrayFloor
+// 
+// **************************************************************
+
+Ops.Array.ArrayFloor = function()
+{
+CABLES.Op.apply(this,arguments);
+const op=this;
+const attachments={};
+const inArray=op.inArray("In"),
+    outArray=op.outArray("Result"),
+    newArr=[];
+
+outArray.set(newArr);
+
+inArray.onChange=function()
+{
+    var arr=inArray.get();
+
+    if(!arr)
+    {
+        outArray.set(null);
+        return;
+    }
+
+    if(newArr.length!=arr.length)newArr.length=arr.length;
+
+    for(var i=0;i<arr.length;i++)
+    {
+        newArr[i] = Math.floor(arr[i]);
+    }
+    outArray.set(null);
+    outArray.set(newArr);
+};
+
+
+};
+
+Ops.Array.ArrayFloor.prototype = new CABLES.Op();
+CABLES.OPS["6ddbb878-5c95-4e4d-a068-760ff5bcf1f6"]={f:Ops.Array.ArrayFloor,objName:"Ops.Array.ArrayFloor"};
 
 
 

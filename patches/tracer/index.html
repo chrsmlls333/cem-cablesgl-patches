@@ -655,7 +655,6 @@
     <script type="text/javascript"  src="js/whammy.js"></script>
     <script type="text/javascript"  src="js/jszip.js"></script>
     <script type="text/javascript"  src="js/moment.js"></script>
-    <script type="text/javascript"  src="js/assets/64c6ccd0c033c0b9f60ff990/docs.opencv.org_4.8.0_opencv.js"></script>
     <script type="text/javascript"  src="js/hammer.js"></script>
 
     <script type="text/javascript" src="js/libs.core.min.js"></script>
@@ -668,8 +667,6 @@
 
 
     <script type="text/javascript">
-        // disable rubberband effect on mobile devices
-        document.getElementById('glcanvas').addEventListener('touchmove', (e)=>{ e.preventDefault(); }, false);
 
         function patchInitialized(patch) {
             // You can now access the patch object (patch), register variable watchers and so on
@@ -687,11 +684,20 @@
             if (fxContextVar) fxContextVar.setValue($fx.context)
         }
 
+        function showError(errId, errMsg) {
+            // handle critical errors here if needed
+            console.error(errId, errMsg)
+        }
+
+        function patchInitialized(patch) {
+            // You can now access the patch object (patch), register variable watchers and so on
+        }
+
         function patchFinishedLoading(patch) {
             // The patch is ready now, all assets have been loaded
         }
 
-        document.addEventListener('CABLES.jsLoaded', function (event) {
+        document.addEventListener("CABLES.jsLoaded", function (event) {
             CABLES.patch = new CABLES.Patch({
                 patchFile: 'js/Tracer_(Cables_Version).json',
                 "prefixAssetPath": "",
@@ -701,14 +707,17 @@
                 "glCanvasResizeToWindow": true,
                 "onPatchLoaded": patchInitialized,
                 "onFinishedLoading": patchFinishedLoading,
-                onError: (err => alert(err)),
-                "canvas":{"alpha":true,"premultipliedAlpha":true} // make canvas transparent
+                "onError": showError,
+                "canvas": {"alpha":true, "premultipliedAlpha":true } // make canvas transparent
             });
 
             CABLES.patch.config.fxPreview = function([param1, param2, param3]) {
               $fx.preview()
             }
         });
+
+        // disable rubberband effect on mobile devices
+        document.getElementById('glcanvas').addEventListener('touchmove', (e)=>{ e.preventDefault(); }, false);
     </script>
 </body>
 </html>
