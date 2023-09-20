@@ -12,7 +12,6 @@ Ops.Html=Ops.Html || {};
 Ops.Json=Ops.Json || {};
 Ops.Math=Ops.Math || {};
 Ops.Time=Ops.Time || {};
-Ops.User=Ops.User || {};
 Ops.Vars=Ops.Vars || {};
 Ops.Array=Ops.Array || {};
 Ops.Patch=Ops.Patch || {};
@@ -34,7 +33,6 @@ Ops.Patch.Pw01AEC=Ops.Patch.Pw01AEC || {};
 Ops.Devices.Mobile=Ops.Devices.Mobile || {};
 Ops.Devices.Keyboard=Ops.Devices.Keyboard || {};
 Ops.Extension.FxHash=Ops.Extension.FxHash || {};
-Ops.User.futuretense=Ops.User.futuretense || {};
 Ops.Gl.TextureEffects=Ops.Gl.TextureEffects || {};
 Ops.Gl.TextureEffects.Noise=Ops.Gl.TextureEffects.Noise || {};
 
@@ -7038,409 +7036,6 @@ CABLES.OPS["f994015c-72ab-42f4-9ef7-a6409a9efb9b"]={f:Ops.Gl.TextureArrayLoaderF
 
 // **************************************************************
 // 
-// Ops.Gl.Textures.TextureToBase64_v3
-// 
-// **************************************************************
-
-Ops.Gl.Textures.TextureToBase64_v3 = function()
-{
-CABLES.Op.apply(this,arguments);
-const op=this;
-const attachments={};
-const
-    inTex = op.inTexture("Texture"),
-    start = op.inTriggerButton("Trigger"),
-    jpeg = op.inBool("Use JPEG", false),
-    dataUrl = op.inBool("Output dataUrl", false),
-    outString = op.outString("Base64 string"),
-    outLoading = op.outBoolNum("Loading");
-
-const cgl = op.patch.cgl;
-const gl = op.patch.cgl.gl;
-let fb = null;
-outString.ignoreValueSerialize = true;
-
-const canvas = document.createElement("canvas");
-
-let pixelReader = new CGL.PixelReader();
-
-jpeg.onChange =
-    dataUrl.onChange =
-    start.onTriggered = update;
-
-function update()
-{
-    op.uiAttr({ "error": null });
-    if (!inTex.get() || !inTex.get().tex) return;
-    outLoading.set(true);
-
-    const width = inTex.get().width;
-    const height = inTex.get().height;
-
-    if (!fb)fb = gl.createFramebuffer();
-
-    gl.bindFramebuffer(gl.FRAMEBUFFER, fb);
-    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, inTex.get().tex, 0);
-
-    const canRead = (gl.checkFramebufferStatus(gl.FRAMEBUFFER) == gl.FRAMEBUFFER_COMPLETE);
-
-    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-
-    if (!canRead)
-    {
-        outLoading.set(true);
-        op.uiAttr({ "error": "cannot read texture!" });
-        return;
-    }
-
-    pixelReader.read(cgl, fb, inTex.get().textureType, 0, 0, width, height,
-        (pixel) =>
-        {
-            // gl.bindFramebuffer(gl.FRAMEBUFFER, fb);
-            // const data = new Uint8Array(width * height * 4);
-            // gl.readPixels(0, 0, width, height, gl.RGBA, gl.UNSIGNED_BYTE, data);
-            // gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-
-            canvas.width = width;
-            canvas.height = height;
-            const context = canvas.getContext("2d");
-
-            // Copy the pixels to a 2D canvas
-            const imageData = context.createImageData(width, height);
-            imageData.data.set(pixel);
-
-            const data2 = imageData.data;
-
-            // flip image
-            Array.from({ "length": height }, (val, i) => { return data2.slice(i * width * 4, (i + 1) * width * 4); })
-                .forEach((val, i) => { return data2.set(val, (height - i - 1) * width * 4); });
-
-            context.putImageData(imageData, 0, 0);
-            let dataString = "";
-            if (jpeg.get())
-            {
-                dataString = canvas.toDataURL("image/jpeg", 1.0);
-            }
-            else
-            {
-                dataString = canvas.toDataURL();
-            }
-            if (!dataUrl.get())
-            {
-                dataString = dataString.split(",", 2)[1];
-            }
-            outString.set(dataString);
-            outLoading.set(false);
-        });
-}
-
-function dataURIToBlob(dataURI, callback)
-{
-    const binStr = atob(dataURI.split(",")[1]),
-        len = binStr.length,
-        arr = new Uint8Array(len);
-    for (let i = 0; i < len; i++) arr[i] = binStr.charCodeAt(i);
-    callback(new Blob([arr], { "type": "image/png" }));
-}
-
-
-};
-
-Ops.Gl.Textures.TextureToBase64_v3.prototype = new CABLES.Op();
-CABLES.OPS["0b1732f8-553d-4a71-9f44-be7a71d33207"]={f:Ops.Gl.Textures.TextureToBase64_v3,objName:"Ops.Gl.Textures.TextureToBase64_v3"};
-
-
-
-
-// **************************************************************
-// 
-// Ops.Gl.Textures.Base64ToTexture
-// 
-// **************************************************************
-
-Ops.Gl.Textures.Base64ToTexture = function()
-{
-CABLES.Op.apply(this,arguments);
-const op=this;
-const attachments={};
-const
-    dataIn = op.inStringEditor("Base64 / Data URI", ""),
-    tfilter = op.inSwitch("filter", ["nearest", "linear", "mipmap"], "linear"),
-    twrap = op.inValueSelect("wrap", ["clamp to edge", "repeat", "mirrored repeat"], "clamp to edge"),
-    textureOut = op.outTexture("Texture"),
-    loadingOut = op.outBool("Loading");
-
-const image = new Image();
-
-let doUpdateTex = false;
-let selectedWrap = CGL.Texture.WRAP_CLAMP_TO_EDGE;
-let selectedFilter = CGL.Texture.FILTER_LINEAR;
-
-function createTex()
-{
-    const tex = CGL.Texture.createFromImage(op.patch.cgl, image,
-        {
-            "filter": selectedFilter,
-            "wrap": selectedWrap
-        });
-    textureOut.set(tex);
-    loadingOut.set(false);
-}
-
-image.onload = function (e)
-{
-    op.patch.cgl.addNextFrameOnceCallback(createTex.bind(this));
-};
-
-dataIn.onChange = () =>
-{
-    updateTex();
-};
-
-twrap.onChange =
-    tfilter.onChange = () =>
-    {
-        if (tfilter.get() == "nearest") selectedFilter = CGL.Texture.FILTER_NEAREST;
-        else if (tfilter.get() == "linear") selectedFilter = CGL.Texture.FILTER_LINEAR;
-        else if (tfilter.get() == "mipmap") selectedFilter = CGL.Texture.FILTER_MIPMAP;
-
-        if (twrap.get() == "repeat") selectedWrap = CGL.Texture.WRAP_REPEAT;
-        else if (twrap.get() == "mirrored repeat") selectedWrap = CGL.Texture.WRAP_MIRRORED_REPEAT;
-        else if (twrap.get() == "clamp to edge") selectedWrap = CGL.Texture.WRAP_CLAMP_TO_EDGE;
-
-        updateTex();
-    };
-
-function updateTex()
-{
-    loadingOut.set(true);
-    let data = dataIn.get();
-    if (data && !data.startsWith("data:"))
-    {
-        data = "data:;base64," + data;
-    }
-    image.src = data;
-}
-
-
-};
-
-Ops.Gl.Textures.Base64ToTexture.prototype = new CABLES.Op();
-CABLES.OPS["cd07e587-432a-4a81-a2b7-51273cf32171"]={f:Ops.Gl.Textures.Base64ToTexture,objName:"Ops.Gl.Textures.Base64ToTexture"};
-
-
-
-
-// **************************************************************
-// 
-// Ops.Trigger.TriggerOnChangeTexture
-// 
-// **************************************************************
-
-Ops.Trigger.TriggerOnChangeTexture = function()
-{
-CABLES.Op.apply(this,arguments);
-const op=this;
-const attachments={};
-const
-    inval = op.inTexture("Texture"),
-    inFilter = op.inBool("Ignore empty/default Texture", false),
-    next = op.outTrigger("Changed"),
-    outTex = op.outTexture("Result", CGL.Texture.getEmptyTexture(op.patch.cgl));
-
-inval.onLinkChanged =
-inval.onChange = function ()
-{
-    const v = inval.get();
-    if (inFilter.get() && (v == CGL.Texture.getEmptyTexture(op.patch.cgl) || v == null)) return;
-
-    outTex.set(v || CGL.Texture.getEmptyTexture(op.patch.cgl));
-    next.trigger();
-};
-
-
-};
-
-Ops.Trigger.TriggerOnChangeTexture.prototype = new CABLES.Op();
-CABLES.OPS["d7260ecb-d862-496a-8a26-f8165ab49dd2"]={f:Ops.Trigger.TriggerOnChangeTexture,objName:"Ops.Trigger.TriggerOnChangeTexture"};
-
-
-
-
-// **************************************************************
-// 
-// Ops.User.futuretense.CEM_OpenCV_Canny
-// 
-// **************************************************************
-
-Ops.User.futuretense.CEM_OpenCV_Canny = function()
-{
-CABLES.Op.apply(this,arguments);
-const op=this;
-const attachments={};
-
-
-
-// // Create a input port of the type Trigger
-const inExecute  = op.inTriggerButton("Trigger In",{"display": "button"});
-inExecute.onTriggered = update;
-
-// Create a input port of the type String
-const inString  = op.inString("Base64 Image String in");
-inString.onChange = update;
-
-// Create a input port of the type value
-const inInteger = op.inInt("Canny Threshold in", 50);
-
-// Create a output port of the type String
-const outString = op.outString("Base64 String out");
-
-
-
-
-function createImgElement(imgId, src) {
-  return new Promise((resolve, reject) => {
-    let existingImg = document.getElementById(imgId);
-
-    if (!existingImg) {
-      existingImg = new Image();
-      existingImg.style.display = 'none';
-      existingImg.id = imgId;
-      document.body.appendChild(existingImg);
-    }
-
-    existingImg.onload = () => {
-      resolve(existingImg);
-    };
-
-    existingImg.onerror = () => {
-      reject(new Error('Failed to load image'));
-    };
-
-    existingImg.src = src;
-  });
-}
-
-function createHiddenCanvas(canvasId, width, height) {
-  let existingCanvas = document.getElementById(canvasId);
-
-  if (!existingCanvas) {
-    existingCanvas = document.createElement('canvas');
-    existingCanvas.style.display = 'none';
-    existingCanvas.id = canvasId;
-    document.body.appendChild(existingCanvas);
-  }
-
-  existingCanvas.width = width;
-  existingCanvas.height = height;
-
-  //const context = existingCanvas.getContext('2d');
-
-  return existingCanvas;
-}
-
-
-
-// this function runs every time the input port is triggered
-function update()
-{
-    if (!inString) return;
-
-    // TODO check validity
-    let base64 = inString.get();
-
-    let imgElID = 'hidden-img'
-    let canvasElID = 'hidden-canvas'
-
-    let canvas = createHiddenCanvas(canvasElID, 50, 50)
-
-    createImgElement(imgElID, inString.get())
-    .then(el => {
-        let src = cv.imread(imgElID);
-        let dst = new cv.Mat();
-
-        cv.cvtColor(src, src, cv.COLOR_RGB2GRAY, 0);
-        let cannyThreshold = inInteger.get()
-        cv.Canny(src, dst, cannyThreshold, 3*cannyThreshold, 3, false);
-
-        cv.imshow(canvasElID, dst);
-
-        src.delete();
-        dst.delete();
-
-        return canvas.toDataURL('image/png')
-    })
-    .then(b => {
-        outString.set(b)
-    })
-
-
-
-
-    // send a trigger out of the output port
-    //outTrigger.trigger();
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-};
-
-Ops.User.futuretense.CEM_OpenCV_Canny.prototype = new CABLES.Op();
-CABLES.OPS["8f9b5cc1-1915-4f99-aff1-4fcfd579adf6"]={f:Ops.User.futuretense.CEM_OpenCV_Canny,objName:"Ops.User.futuretense.CEM_OpenCV_Canny"};
-
-
-
-
-// **************************************************************
-// 
-// Ops.Trigger.TriggerOnChangeString
-// 
-// **************************************************************
-
-Ops.Trigger.TriggerOnChangeString = function()
-{
-CABLES.Op.apply(this,arguments);
-const op=this;
-const attachments={};
-const
-    inval = op.inString("String"),
-    next = op.outTrigger("Changed"),
-    outStr = op.outString("Result");
-
-inval.onChange = function ()
-{
-    outStr.set(inval.get());
-    next.trigger();
-};
-
-
-};
-
-Ops.Trigger.TriggerOnChangeString.prototype = new CABLES.Op();
-CABLES.OPS["319d07e0-5cbe-4bc1-89fb-a934fd41b0c4"]={f:Ops.Trigger.TriggerOnChangeString,objName:"Ops.Trigger.TriggerOnChangeString"};
-
-
-
-
-// **************************************************************
-// 
 // Ops.Trigger.TriggerSend
 // 
 // **************************************************************
@@ -7540,6 +7135,42 @@ CABLES.OPS["ce1eaf2b-943b-4dc0-ab5e-ee11b63c9ed0"]={f:Ops.Trigger.TriggerSend,ob
 
 // **************************************************************
 // 
+// Ops.Trigger.TriggerOnChangeTexture
+// 
+// **************************************************************
+
+Ops.Trigger.TriggerOnChangeTexture = function()
+{
+CABLES.Op.apply(this,arguments);
+const op=this;
+const attachments={};
+const
+    inval = op.inTexture("Texture"),
+    inFilter = op.inBool("Ignore empty/default Texture", false),
+    next = op.outTrigger("Changed"),
+    outTex = op.outTexture("Result", CGL.Texture.getEmptyTexture(op.patch.cgl));
+
+inval.onLinkChanged =
+inval.onChange = function ()
+{
+    const v = inval.get();
+    if (inFilter.get() && (v == CGL.Texture.getEmptyTexture(op.patch.cgl) || v == null)) return;
+
+    outTex.set(v || CGL.Texture.getEmptyTexture(op.patch.cgl));
+    next.trigger();
+};
+
+
+};
+
+Ops.Trigger.TriggerOnChangeTexture.prototype = new CABLES.Op();
+CABLES.OPS["d7260ecb-d862-496a-8a26-f8165ab49dd2"]={f:Ops.Trigger.TriggerOnChangeTexture,objName:"Ops.Trigger.TriggerOnChangeTexture"};
+
+
+
+
+// **************************************************************
+// 
 // Ops.Trigger.TriggerOnce
 // 
 // **************************************************************
@@ -7585,399 +7216,6 @@ CABLES.OPS["cf3544e4-e392-432b-89fd-fcfb5c974388"]={f:Ops.Trigger.TriggerOnce,ob
 
 // **************************************************************
 // 
-// Ops.Math.TriggerRandomNumber_v2
-// 
-// **************************************************************
-
-Ops.Math.TriggerRandomNumber_v2 = function()
-{
-CABLES.Op.apply(this,arguments);
-const op=this;
-const attachments={};
-const
-    exe = op.inTriggerButton("Generate"),
-    min = op.inValue("min", 0),
-    max = op.inValue("max", 1),
-    outTrig = op.outTrigger("next"),
-    result = op.outNumber("result"),
-    inInteger = op.inValueBool("Integer", false),
-    noDupe = op.inValueBool("No consecutive duplicates", false);
-
-op.setPortGroup("Value Range", [min, max]);
-
-exe.onTriggered =
-    max.onChange =
-    min.onChange =
-    inInteger.onChange = genRandom;
-
-genRandom();
-
-function genRandom()
-{
-    let r = (Math.random() * (max.get() - min.get())) + min.get();
-
-    if (inInteger.get())r = randInt();
-
-    if (min.get() != max.get() && max.get() > min.get())
-        while (noDupe.get() && r == result.get()) r = randInt();
-
-    result.set(r);
-    outTrig.trigger();
-}
-
-function randInt()
-{
-    return Math.floor((Math.random() * ((max.get() - min.get() + 1))) + min.get());
-}
-
-
-};
-
-Ops.Math.TriggerRandomNumber_v2.prototype = new CABLES.Op();
-CABLES.OPS["26f446cc-9107-4164-8209-5254487fa132"]={f:Ops.Math.TriggerRandomNumber_v2,objName:"Ops.Math.TriggerRandomNumber_v2"};
-
-
-
-
-// **************************************************************
-// 
-// Ops.Array.ArrayGetTexture
-// 
-// **************************************************************
-
-Ops.Array.ArrayGetTexture = function()
-{
-CABLES.Op.apply(this,arguments);
-const op=this;
-const attachments={};
-const
-    array = op.inArray("array"),
-    index = op.inValueInt("index"),
-    value = op.outTexture("value");
-
-let last = null;
-
-array.ignoreValueSerialize = true;
-value.ignoreValueSerialize = true;
-
-index.onChange = update;
-array.onChange = update;
-
-op.toWorkPortsNeedToBeLinked(array, value);
-
-const emptyTex = CGL.Texture.getEmptyTexture(op.patch.cgl);
-
-function update()
-{
-    if (index.get() < 0)
-    {
-        value.set(emptyTex);
-        return;
-    }
-
-    let arr = array.get();
-    if (!arr)
-    {
-        value.set(emptyTex);
-        return;
-    }
-
-    let ind = index.get();
-    if (ind >= arr.length)
-    {
-        value.set(emptyTex);
-        return;
-    }
-    if (arr[ind])
-    {
-        value.set(emptyTex);
-        value.set(arr[ind]);
-        last = arr[ind];
-    }
-}
-
-
-};
-
-Ops.Array.ArrayGetTexture.prototype = new CABLES.Op();
-CABLES.OPS["afea522b-ab72-4574-b721-5d37f5abaf77"]={f:Ops.Array.ArrayGetTexture,objName:"Ops.Array.ArrayGetTexture"};
-
-
-
-
-// **************************************************************
-// 
-// Ops.Array.TextureBufferArray
-// 
-// **************************************************************
-
-Ops.Array.TextureBufferArray = function()
-{
-CABLES.Op.apply(this,arguments);
-const op=this;
-const attachments={};
-const inExec = op.inTrigger("Write");
-
-const inTexture = op.inTexture("Texture");
-const inNum = op.inValueInt("Num", 8);
-
-const outArr = op.outArray("Result");
-
-const inSort = op.inValueBool("Order");
-const inClear = op.inValueBool("Clear", true);
-
-const cgl = op.patch.cgl;
-const frameBuf = cgl.gl.createFramebuffer();
-const renderbuffer = cgl.gl.createRenderbuffer();
-let index = 0;
-const textures = [];
-let quadMesh = null;
-let inited = false;
-const sorted = [];
-
-inNum.onChange = init;
-
-const bgFrag = ""
-    .endl() + "UNI float a;"
-    .endl() + "UNI sampler2D tex;"
-    .endl() + "IN vec2 texCoord;"
-    .endl() + "void main()"
-    .endl() + "{"
-    .endl() + "   vec4 col=texture2D(tex,texCoord);"
-    .endl() + "   outColor= col;"
-    .endl() + "}";
-const bgShader = new CGL.Shader(cgl, "imgcompose bg");
-bgShader.setSource(bgShader.getDefaultVertexShader(), bgFrag);
-const textureUniform = new CGL.Uniform(bgShader, "t", "tex", 0);
-
-inExec.onTriggered = render;
-
-function init()
-{
-    if (inNum.get() == 0) return;
-    for (let i = 0; i < textures.length; i++)
-    {
-        textures[i].delete();
-    }
-
-    if (!inTexture.get()) return;
-    textures.length = inNum.get();
-    sorted.length = inNum.get();
-
-    // op.log(inTexture.get());
-
-    for (let i = 0; i < inNum.get(); i++)
-    {
-        textures[i] = inTexture.get().clone();
-        // textures[i].updateMipMap();
-    }
-
-    // cgl.gl.bindFramebuffer(cgl.gl.FRAMEBUFFER, null);
-
-    // cgl.gl.bindFramebuffer(cgl.gl.FRAMEBUFFER, frameBuf);
-    cgl.gl.bindFramebuffer(cgl.gl.FRAMEBUFFER, frameBuf);
-    cgl.gl.framebufferTexture2D(cgl.gl.FRAMEBUFFER, cgl.gl.COLOR_ATTACHMENT0, cgl.gl.TEXTURE_2D, textures[0].tex, 0);
-
-    // cgl.gl.bindRenderbuffer(cgl.gl.RENDERBUFFER, renderbuffer);
-
-    // cgl.gl.bindTexture(cgl.gl.TEXTURE_2D, null);
-    // cgl.gl.bindRenderbuffer(cgl.gl.RENDERBUFFER, null);
-    cgl.gl.bindFramebuffer(cgl.gl.FRAMEBUFFER, null);
-
-    // textures[0].updateMipMap();
-
-    inited = true;
-}
-
-function createMesh()
-{
-    const geom = new CGL.Geometry("textureEffect rect");
-
-    geom.vertices = [
-        1.0, 1.0, 0.0,
-        -1.0, 1.0, 0.0,
-        1.0, -1.0, 0.0,
-        -1.0, -1.0, 0.0
-    ];
-
-    geom.texCoords = [
-        1.0, 1.0,
-        0.0, 1.0,
-        1.0, 0.0,
-        0.0, 0.0
-    ];
-
-    geom.verticesIndices = [
-        0, 1, 2,
-        2, 1, 3
-    ];
-
-    quadMesh = new CGL.Mesh(cgl, geom);
-}
-
-function render()
-{
-    if (!inTexture.get())
-    {
-        op.log("no tex 1");
-        return;
-    }
-
-    if (!inTexture.get().tex)
-    {
-        op.log("no tex 2");
-        return;
-    }
-
-    if (!quadMesh)createMesh();
-    if (!inited || !frameBuf)init();
-    if (!textures[0] || textures.length == 0)
-    {
-        op.log("no tex");
-        return;
-    }
-
-    if (!textures[0].compareSettings(inTexture.get()))init();
-    // if(inTexture.get().width!=textures[0].width)init();
-    // if(inTexture.get().height!=textures[0].height)init();
-
-    index %= inNum.get();
-
-    cgl.gl.bindFramebuffer(cgl.gl.FRAMEBUFFER, frameBuf);
-    cgl.gl.framebufferTexture2D(cgl.gl.FRAMEBUFFER, cgl.gl.COLOR_ATTACHMENT0, cgl.gl.TEXTURE_2D, textures[index].tex, 0);
-    cgl.pushGlFrameBuffer(frameBuf);
-
-    cgl.pushDepthTest(false);
-
-    if (inClear.get())
-    {
-        cgl.gl.clearColor(0, 0, 0, 1);
-        cgl.gl.clear(cgl.gl.COLOR_BUFFER_BIT | cgl.gl.DEPTH_BUFFER_BIT);
-    }
-
-    cgl.pushModelMatrix();
-
-    cgl.pushPMatrix();
-    cgl.gl.viewport(0, 0, inTexture.get().width, inTexture.get().height);
-    mat4.perspective(cgl.pMatrix, 45, inTexture.get().width / inTexture.get().height, 0.1, 1100.0);
-
-    cgl.pushPMatrix();
-    mat4.identity(cgl.pMatrix);
-
-    cgl.pushViewMatrix();
-    mat4.identity(cgl.vMatrix);
-
-    cgl.pushModelMatrix();
-    mat4.identity(cgl.mMatrix);
-
-    // here be rendering
-
-    cgl.pushShader(bgShader);
-    // cgl.currentTextureEffect.bind();
-
-    cgl.setTexture(0, inTexture.get().tex);
-    // cgl.gl.bindTexture(cgl.gl.TEXTURE_2D,  );
-
-    quadMesh.render(cgl.getShader());
-
-    cgl.gl.bindFramebuffer(cgl.gl.FRAMEBUFFER, cgl.popGlFrameBuffer());
-
-    cgl.popShader();
-
-    cgl.popDepthTest();
-    cgl.popModelMatrix();
-
-    cgl.popPMatrix();
-    cgl.popModelMatrix();
-    cgl.popViewMatrix();
-
-    cgl.popPMatrix();
-    cgl.resetViewPort();
-
-    op.patch.cgl.gl.bindTexture(op.patch.cgl.gl.TEXTURE_2D, textures[index].tex);
-    // this._colorTextures[i].updateMipMap();
-    textures[index].updateMipMap();
-    op.patch.cgl.gl.bindTexture(op.patch.cgl.gl.TEXTURE_2D, null);
-
-    if (inSort.get())
-    {
-        for (let i = 0; i < textures.length; i++)
-        {
-            sorted[textures.length - i - 1] = textures[(index + i + 1) % inNum.get()];
-        }
-
-        outArr.set(null);
-        outArr.set(sorted);
-    }
-    else
-    {
-        outArr.set(null);
-        outArr.set(textures);
-    }
-    index++;
-}
-
-
-};
-
-Ops.Array.TextureBufferArray.prototype = new CABLES.Op();
-CABLES.OPS["04dc13d2-e339-4e1d-82c5-9c9ff1b175b8"]={f:Ops.Array.TextureBufferArray,objName:"Ops.Array.TextureBufferArray"};
-
-
-
-
-// **************************************************************
-// 
-// Ops.Time.DelayedTrigger
-// 
-// **************************************************************
-
-Ops.Time.DelayedTrigger = function()
-{
-CABLES.Op.apply(this,arguments);
-const op=this;
-const attachments={};
-const
-    exe = op.inTrigger("exe"),
-    delay = op.inValueFloat("delay", 1),
-    cancel = op.inTriggerButton("Cancel"),
-    next = op.outTrigger("next"),
-    outDelaying = op.outBool("Delaying");
-
-let lastTimeout = null;
-
-cancel.onTriggered = function ()
-{
-    if (lastTimeout)clearTimeout(lastTimeout);
-    lastTimeout = null;
-};
-
-exe.onTriggered = function ()
-{
-    outDelaying.set(true);
-    if (lastTimeout)clearTimeout(lastTimeout);
-
-    lastTimeout = setTimeout(
-        function ()
-        {
-            outDelaying.set(false);
-            lastTimeout = null;
-            next.trigger();
-        },
-        delay.get() * 1000);
-};
-
-
-};
-
-Ops.Time.DelayedTrigger.prototype = new CABLES.Op();
-CABLES.OPS["f4ff66b0-8500-46f7-9117-832aea0c2750"]={f:Ops.Time.DelayedTrigger,objName:"Ops.Time.DelayedTrigger"};
-
-
-
-
-// **************************************************************
-// 
 // Ops.Vars.VarSetTexture_v2
 // 
 // **************************************************************
@@ -7997,468 +7235,6 @@ new CABLES.VarSetOpWrapper(op, "object", val, op.varName);
 
 Ops.Vars.VarSetTexture_v2.prototype = new CABLES.Op();
 CABLES.OPS["4fbfc71e-1429-439f-8591-ad35961252ed"]={f:Ops.Vars.VarSetTexture_v2,objName:"Ops.Vars.VarSetTexture_v2"};
-
-
-
-
-// **************************************************************
-// 
-// Ops.String.NumberToString_v2
-// 
-// **************************************************************
-
-Ops.String.NumberToString_v2 = function()
-{
-CABLES.Op.apply(this,arguments);
-const op=this;
-const attachments={};
-const
-    val = op.inValue("Number"),
-    result = op.outString("Result");
-
-val.onChange = update;
-update();
-
-function update()
-{
-    result.set(String(val.get() || 0));
-}
-
-
-};
-
-Ops.String.NumberToString_v2.prototype = new CABLES.Op();
-CABLES.OPS["5c6d375a-82db-4366-8013-93f56b4061a9"]={f:Ops.String.NumberToString_v2,objName:"Ops.String.NumberToString_v2"};
-
-
-
-
-// **************************************************************
-// 
-// Ops.Json.ObjectGetObject_v2
-// 
-// **************************************************************
-
-Ops.Json.ObjectGetObject_v2 = function()
-{
-CABLES.Op.apply(this,arguments);
-const op=this;
-const attachments={};
-const
-    data = op.inObject("Object"),
-    key = op.inString("Key"),
-    result = op.outObject("Result");
-
-result.ignoreValueSerialize = true;
-data.ignoreValueSerialize = true;
-
-op.setUiAttrib({ "extendTitlePort": key.name });
-
-key.onChange =
-data.onChange = update;
-
-function update()
-{
-    if (data.get())
-    {
-        result.setRef(data.get()[key.get()]);
-    }
-    else
-    {
-        result.set(null);
-    }
-}
-
-
-};
-
-Ops.Json.ObjectGetObject_v2.prototype = new CABLES.Op();
-CABLES.OPS["d1dfa305-89db-4ca1-b0ac-2d6321d76ae8"]={f:Ops.Json.ObjectGetObject_v2,objName:"Ops.Json.ObjectGetObject_v2"};
-
-
-
-
-// **************************************************************
-// 
-// Ops.Json.ObjectGetString
-// 
-// **************************************************************
-
-Ops.Json.ObjectGetString = function()
-{
-CABLES.Op.apply(this,arguments);
-const op=this;
-const attachments={};
-const
-    data = op.inObject("data"),
-    key = op.inString("Key"),
-    result = op.outString("Result");
-
-result.ignoreValueSerialize = true;
-data.ignoreValueSerialize = true;
-
-op.setUiAttrib({ "extendTitlePort": key.name });
-
-key.onChange =
-data.onChange = exec;
-
-function exec()
-{
-    if (data.get())
-    {
-        const value = data.get()[key.get()];
-        const isNull = value === undefined || value === null;
-
-        if (isNull)
-        {
-            result.setRef(null);
-        }
-        else
-        {
-            result.set(String(value));
-        }
-    }
-    else
-    {
-        result.setRef(null);
-    }
-}
-
-
-};
-
-Ops.Json.ObjectGetString.prototype = new CABLES.Op();
-CABLES.OPS["7d86cd28-f7d8-44a1-a4da-466c4782aaec"]={f:Ops.Json.ObjectGetString,objName:"Ops.Json.ObjectGetString"};
-
-
-
-
-// **************************************************************
-// 
-// Ops.Cables.AssetPathURL
-// 
-// **************************************************************
-
-Ops.Cables.AssetPathURL = function()
-{
-CABLES.Op.apply(this,arguments);
-const op=this;
-const attachments={};
-const
-    fn = op.inString("Filename", ""),
-    path = op.outString("Path");
-
-fn.onChange = update;
-
-update();
-
-function update()
-{
-    let filename = fn.get();
-
-    if (!fn.get())
-    {
-        path.set("");
-        return;
-    }
-
-    let patchId = null;
-    if (op.storage && op.storage.blueprint && op.storage.blueprint.patchId)
-    {
-        patchId = op.storage.blueprint.patchId;
-    }
-    filename = op.patch.getAssetPath(patchId) + filename;
-    let url = op.patch.getFilePath(filename);
-    path.set(url);
-}
-
-
-};
-
-Ops.Cables.AssetPathURL.prototype = new CABLES.Op();
-CABLES.OPS["e502ae39-c87e-4516-9e78-cb71333bcfff"]={f:Ops.Cables.AssetPathURL,objName:"Ops.Cables.AssetPathURL"};
-
-
-
-
-// **************************************************************
-// 
-// Ops.Gl.Texture_v2
-// 
-// **************************************************************
-
-Ops.Gl.Texture_v2 = function()
-{
-CABLES.Op.apply(this,arguments);
-const op=this;
-const attachments={};
-const
-    filename = op.inUrl("File", [".jpg", ".png", ".webp", ".jpeg", ".avif"]),
-    tfilter = op.inSwitch("Filter", ["nearest", "linear", "mipmap"]),
-    wrap = op.inValueSelect("Wrap", ["repeat", "mirrored repeat", "clamp to edge"], "clamp to edge"),
-    aniso = op.inSwitch("Anisotropic", ["0", "1", "2", "4", "8", "16"], "0"),
-    flip = op.inValueBool("Flip", false),
-    unpackAlpha = op.inValueBool("Pre Multiplied Alpha", false),
-    active = op.inValueBool("Active", true),
-    inFreeMemory = op.inBool("Save Memory", true),
-    textureOut = op.outTexture("Texture"),
-    width = op.outNumber("Width"),
-    height = op.outNumber("Height"),
-    ratio = op.outNumber("Aspect Ratio"),
-    loaded = op.outNumber("Loaded", false),
-    loading = op.outNumber("Loading", false);
-
-const cgl = op.patch.cgl;
-
-op.toWorkPortsNeedToBeLinked(textureOut);
-op.setPortGroup("Size", [width, height]);
-
-let loadedFilename = null;
-let loadingId = null;
-let tex = null;
-let cgl_filter = CGL.Texture.FILTER_MIPMAP;
-let cgl_wrap = CGL.Texture.WRAP_REPEAT;
-let cgl_aniso = 0;
-let timedLoader = 0;
-
-unpackAlpha.setUiAttribs({ "hidePort": true });
-unpackAlpha.onChange =
-    filename.onChange =
-    flip.onChange = reloadSoon;
-aniso.onChange = tfilter.onChange = onFilterChange;
-wrap.onChange = onWrapChange;
-
-tfilter.set("mipmap");
-wrap.set("repeat");
-
-textureOut.set(CGL.Texture.getEmptyTexture(cgl));
-
-active.onChange = function ()
-{
-    if (active.get())
-    {
-        if (loadedFilename != filename.get() || !tex) reloadSoon();
-        else textureOut.set(tex);
-    }
-    else
-    {
-        textureOut.set(CGL.Texture.getEmptyTexture(cgl));
-        width.set(CGL.Texture.getEmptyTexture(cgl).width);
-        height.set(CGL.Texture.getEmptyTexture(cgl).height);
-        if (tex)tex.delete();
-        op.setUiAttrib({ "extendTitle": "" });
-        tex = null;
-    }
-};
-
-const setTempTexture = function ()
-{
-    const t = CGL.Texture.getTempTexture(cgl);
-    textureOut.set(t);
-};
-
-function reloadSoon(nocache)
-{
-    clearTimeout(timedLoader);
-    timedLoader = setTimeout(function ()
-    {
-        realReload(nocache);
-    }, 30);
-}
-
-function realReload(nocache)
-{
-    if (!active.get()) return;
-    // if (filename.get() === null) return;
-    if (loadingId)loadingId = cgl.patch.loading.finished(loadingId);
-    loadingId = cgl.patch.loading.start("textureOp", filename.get(), op);
-
-    let url = op.patch.getFilePath(String(filename.get()));
-
-    if (nocache)url += "?rnd=" + CABLES.uuid();
-
-    if (String(filename.get()).indexOf("data:") == 0) url = filename.get();
-
-    let needsRefresh = false;
-    if (loadedFilename != filename.get()) needsRefresh = true;
-    loadedFilename = filename.get();
-
-    if ((filename.get() && filename.get().length > 1))
-    {
-        loaded.set(false);
-        loading.set(true);
-
-        const fileToLoad = filename.get();
-
-        op.setUiAttrib({ "extendTitle": CABLES.basename(url) });
-        if (needsRefresh) op.refreshParams();
-
-        cgl.patch.loading.addAssetLoadingTask(() =>
-        {
-            op.setUiError("urlerror", null);
-
-            CGL.Texture.load(cgl, url,
-                function (err, newTex)
-                {
-                    cgl.checkFrameStarted("texture inittexture");
-
-                    if (filename.get() != fileToLoad)
-                    {
-                        cgl.patch.loading.finished(loadingId);
-                        loadingId = null;
-                        return;
-                    }
-
-                    if (err)
-                    {
-                        const t = CGL.Texture.getErrorTexture(cgl);
-                        textureOut.set(t);
-
-                        op.setUiError("urlerror", "could not load texture: \"" + filename.get() + "\"", 2);
-                        cgl.patch.loading.finished(loadingId);
-                        loadingId = null;
-                        return;
-                    }
-
-                    textureOut.set(newTex);
-
-                    width.set(newTex.width);
-                    height.set(newTex.height);
-                    ratio.set(newTex.width / newTex.height);
-
-                    // if (!newTex.isPowerOfTwo()) op.setUiError("npot", "Texture dimensions not power of two! - Texture filtering will not work in WebGL 1.", 0);
-                    // else op.setUiError("npot", null);
-
-                    if (tex)tex.delete();
-                    tex = newTex;
-                    // textureOut.set(null);
-                    textureOut.setRef(tex);
-
-                    loading.set(false);
-                    loaded.set(true);
-
-                    if (inFreeMemory.get()) tex.image = null;
-
-                    if (loadingId)
-                    {
-                        cgl.patch.loading.finished(loadingId);
-                        loadingId = null;
-                    }
-                    // testTexture();
-                }, {
-                    "anisotropic": cgl_aniso,
-                    "wrap": cgl_wrap,
-                    "flip": flip.get(),
-                    "unpackAlpha": unpackAlpha.get(),
-                    "filter": cgl_filter
-                });
-
-            // textureOut.set(null);
-            // textureOut.set(tex);
-        });
-    }
-    else
-    {
-        cgl.patch.loading.finished(loadingId);
-        loadingId = null;
-        setTempTexture();
-    }
-}
-
-function onFilterChange()
-{
-    if (tfilter.get() == "nearest") cgl_filter = CGL.Texture.FILTER_NEAREST;
-    else if (tfilter.get() == "linear") cgl_filter = CGL.Texture.FILTER_LINEAR;
-    else if (tfilter.get() == "mipmap") cgl_filter = CGL.Texture.FILTER_MIPMAP;
-    else if (tfilter.get() == "Anisotropic") cgl_filter = CGL.Texture.FILTER_ANISOTROPIC;
-
-    aniso.setUiAttribs({ "greyout": cgl_filter != CGL.Texture.FILTER_MIPMAP });
-
-    cgl_aniso = parseFloat(aniso.get());
-
-    reloadSoon();
-}
-
-function onWrapChange()
-{
-    if (wrap.get() == "repeat") cgl_wrap = CGL.Texture.WRAP_REPEAT;
-    if (wrap.get() == "mirrored repeat") cgl_wrap = CGL.Texture.WRAP_MIRRORED_REPEAT;
-    if (wrap.get() == "clamp to edge") cgl_wrap = CGL.Texture.WRAP_CLAMP_TO_EDGE;
-
-    reloadSoon();
-}
-
-op.onFileChanged = function (fn)
-{
-    if (filename.get() && filename.get().indexOf(fn) > -1)
-    {
-        textureOut.set(CGL.Texture.getEmptyTexture(op.patch.cgl));
-        textureOut.set(CGL.Texture.getTempTexture(cgl));
-        realReload(true);
-    }
-};
-
-// function testTexture()
-// {
-//     cgl.setTexture(0, tex.tex);
-
-//     const filter = cgl.gl.getTexParameter(cgl.gl.TEXTURE_2D, cgl.gl.TEXTURE_MIN_FILTER);
-//     const wrap = cgl.gl.getTexParameter(cgl.gl.TEXTURE_2D, cgl.gl.TEXTURE_WRAP_S);
-
-//     if (cgl_filter === CGL.Texture.FILTER_MIPMAP && filter != cgl.gl.LINEAR_MIPMAP_LINEAR) console.log("wrong texture filter!", filename.get());
-//     if (cgl_filter === CGL.Texture.FILTER_NEAREST && filter != cgl.gl.NEAREST) console.log("wrong texture filter!", filename.get());
-//     if (cgl_filter === CGL.Texture.FILTER_LINEAR && filter != cgl.gl.LINEAR) console.log("wrong texture filter!", filename.get());
-
-//     if (cgl_wrap === CGL.Texture.WRAP_REPEAT && wrap != cgl.gl.REPEAT) console.log("wrong texture wrap1!", filename.get());
-//     if (cgl_wrap === CGL.Texture.WRAP_MIRRORED_REPEAT && wrap != cgl.gl.MIRRORED_REPEAT) console.log("wrong texture wrap2!", filename.get());
-//     if (cgl_wrap === CGL.Texture.WRAP_CLAMP_TO_EDGE && wrap != cgl.gl.CLAMP_TO_EDGE) console.log("wrong texture wrap3!", filename.get());
-// }
-
-
-};
-
-Ops.Gl.Texture_v2.prototype = new CABLES.Op();
-CABLES.OPS["790f3702-9833-464e-8e37-6f0f813f7e16"]={f:Ops.Gl.Texture_v2,objName:"Ops.Gl.Texture_v2"};
-
-
-
-
-// **************************************************************
-// 
-// Ops.Json.ObjectKeys
-// 
-// **************************************************************
-
-Ops.Json.ObjectKeys = function()
-{
-CABLES.Op.apply(this,arguments);
-const op=this;
-const attachments={};
-const
-    inObj = op.inObject("Object"),
-    outNumKeys = op.outNumber("Num Keys"),
-    outKeys = op.outArray("Keys");
-
-inObj.onChange = function ()
-{
-    let o = inObj.get();
-    if (!o)
-    {
-        outNumKeys.set(0);
-        outKeys.set([]);
-        return;
-    }
-
-    let keys = Object.keys(o);
-    outNumKeys.set(keys.length);
-    outKeys.set(keys);
-};
-
-
-};
-
-Ops.Json.ObjectKeys.prototype = new CABLES.Op();
-CABLES.OPS["83b4d148-8cb3-4a45-8824-957eeaf02e22"]={f:Ops.Json.ObjectKeys,objName:"Ops.Json.ObjectKeys"};
 
 
 
@@ -8961,6 +7737,56 @@ val.onChange = function ()
 
 Ops.Boolean.TriggerChangedTrue.prototype = new CABLES.Op();
 CABLES.OPS["385197e1-8b34-4d1c-897f-d1386d99e3b3"]={f:Ops.Boolean.TriggerChangedTrue,objName:"Ops.Boolean.TriggerChangedTrue"};
+
+
+
+
+// **************************************************************
+// 
+// Ops.Time.DelayedTrigger
+// 
+// **************************************************************
+
+Ops.Time.DelayedTrigger = function()
+{
+CABLES.Op.apply(this,arguments);
+const op=this;
+const attachments={};
+const
+    exe = op.inTrigger("exe"),
+    delay = op.inValueFloat("delay", 1),
+    cancel = op.inTriggerButton("Cancel"),
+    next = op.outTrigger("next"),
+    outDelaying = op.outBool("Delaying");
+
+let lastTimeout = null;
+
+cancel.onTriggered = function ()
+{
+    if (lastTimeout)clearTimeout(lastTimeout);
+    lastTimeout = null;
+};
+
+exe.onTriggered = function ()
+{
+    outDelaying.set(true);
+    if (lastTimeout)clearTimeout(lastTimeout);
+
+    lastTimeout = setTimeout(
+        function ()
+        {
+            outDelaying.set(false);
+            lastTimeout = null;
+            next.trigger();
+        },
+        delay.get() * 1000);
+};
+
+
+};
+
+Ops.Time.DelayedTrigger.prototype = new CABLES.Op();
+CABLES.OPS["f4ff66b0-8500-46f7-9117-832aea0c2750"]={f:Ops.Time.DelayedTrigger,objName:"Ops.Time.DelayedTrigger"};
 
 
 
@@ -9796,69 +8622,6 @@ CABLES.OPS["7b9626db-536b-4bb4-85c3-95401bc60d1b"]={f:Ops.Devices.Mouse.MouseWhe
 
 // **************************************************************
 // 
-// Ops.Gl.TextureEffects.EdgeDetection_v4
-// 
-// **************************************************************
-
-Ops.Gl.TextureEffects.EdgeDetection_v4 = function()
-{
-CABLES.Op.apply(this,arguments);
-const op=this;
-const attachments={"edgedetect_frag":"IN vec2 texCoord;\nUNI sampler2D tex;\nUNI float amount;\nUNI float width;\nUNI float strength;\nUNI float texWidth;\nUNI float texHeight;\nUNI float mulColor;\n\nconst vec4 lumcoeff = vec4(0.299,0.587,0.114, 0.);\n\nvec3 desaturate(vec3 color)\n{\n    return vec3(dot(vec3(0.2126,0.7152,0.0722), color));\n}\n\n{{CGL.BLENDMODES3}}\n\nvoid main()\n{\n    // vec4 col=vec4(1.0,0.0,0.0,1.0);\n\n    // float pixelX=0.27/texWidth;\n    // float pixelY=0.27/texHeight;\n    float pixelX=(width+0.01)*4.0/texWidth;\n    float pixelY=(width+0.01)*4.0/texHeight;\n\nvec2 tc=texCoord;\n// #ifdef OFFSETPIXEL\n    tc.x+=1.0/texWidth*0.5;\n    tc.y+=1.0/texHeight*0.5;\n// #endif\n    // col=texture(tex,texCoord);\n\n    float count=1.0;\n    vec4 base=texture(tex,texCoord);\n\n\tvec4 horizEdge = vec4( 0.0 );\n\thorizEdge -= texture( tex, vec2( tc.x - pixelX, tc.y - pixelY ) ) * 1.0;\n\thorizEdge -= texture( tex, vec2( tc.x - pixelX, tc.y     ) ) * 2.0;\n\thorizEdge -= texture( tex, vec2( tc.x - pixelX, tc.y + pixelY ) ) * 1.0;\n\thorizEdge += texture( tex, vec2( tc.x + pixelX, tc.y - pixelY ) ) * 1.0;\n\thorizEdge += texture( tex, vec2( tc.x + pixelX, tc.y     ) ) * 2.0;\n\thorizEdge += texture( tex, vec2( tc.x + pixelX, tc.y + pixelY ) ) * 1.0;\n\tvec4 vertEdge = vec4( 0.0 );\n\tvertEdge -= texture( tex, vec2( tc.x - pixelX, tc.y - pixelY ) ) * 1.0;\n\tvertEdge -= texture( tex, vec2( tc.x    , tc.y - pixelY ) ) * 2.0;\n\tvertEdge -= texture( tex, vec2( tc.x + pixelX, tc.y - pixelY ) ) * 1.0;\n\tvertEdge += texture( tex, vec2( tc.x - pixelX, tc.y + pixelY ) ) * 1.0;\n\tvertEdge += texture( tex, vec2( tc.x    , tc.y + pixelY ) ) * 2.0;\n\tvertEdge += texture( tex, vec2( tc.x + pixelX, tc.y + pixelY ) ) * 1.0;\n\n\thorizEdge*=base.a;\n\tvertEdge*=base.a;\n\n\n\tvec3 edge = sqrt((horizEdge.rgb/count * horizEdge.rgb/count) + (vertEdge.rgb/count * vertEdge.rgb/count));\n\n    edge=desaturate(edge);\n    edge*=strength;\n\n    if(mulColor>0.0) edge*=texture( tex, texCoord ).rgb*mulColor*4.0;\n    edge=max(min(edge,1.0),0.0);\n\n    //blend section\n    vec4 col=vec4(edge,base.a);\n\n    outColor=cgl_blendPixel(base,col,amount*base.a);\n}\n\n",};
-const
-    render = op.inTrigger("Render"),
-    blendMode = CGL.TextureEffect.AddBlendSelect(op, "Blend Mode", "normal"),
-    amount = op.inValueSlider("Amount", 1),
-    strength = op.inFloat("Strength", 4.0),
-    width = op.inValueSlider("Width", 0.1),
-    mulColor = op.inValueSlider("Mul Color", 0),
-    trigger = op.outTrigger("Trigger");
-
-const cgl = op.patch.cgl;
-const shader = new CGL.Shader(cgl, op.name);
-
-shader.setSource(shader.getDefaultVertexShader(), attachments.edgedetect_frag);
-
-const
-    textureUniform = new CGL.Uniform(shader, "t", "tex", 0),
-    amountUniform = new CGL.Uniform(shader, "f", "amount", amount),
-    strengthUniform = new CGL.Uniform(shader, "f", "strength", strength),
-    widthUniform = new CGL.Uniform(shader, "f", "width", width),
-    uniWidth = new CGL.Uniform(shader, "f", "texWidth", 128),
-    uniHeight = new CGL.Uniform(shader, "f", "texHeight", 128),
-    uniMulColor = new CGL.Uniform(shader, "f", "mulColor", mulColor);
-
-CGL.TextureEffect.setupBlending(op, shader, blendMode, amount);
-
-render.onTriggered = function ()
-{
-    if (!CGL.TextureEffect.checkOpInEffect(op,3)) return;
-
-    cgl.pushShader(shader);
-    cgl.currentTextureEffect.bind();
-
-    cgl.setTexture(0, cgl.currentTextureEffect.getCurrentSourceTexture().tex);
-
-    uniWidth.setValue(cgl.currentTextureEffect.getCurrentSourceTexture().width);
-    uniHeight.setValue(cgl.currentTextureEffect.getCurrentSourceTexture().height);
-
-    cgl.currentTextureEffect.finish();
-    cgl.popShader();
-
-    trigger.trigger();
-};
-
-
-};
-
-Ops.Gl.TextureEffects.EdgeDetection_v4.prototype = new CABLES.Op();
-CABLES.OPS["0240e26e-b86d-43b2-8c72-6795bb86dc76"]={f:Ops.Gl.TextureEffects.EdgeDetection_v4,objName:"Ops.Gl.TextureEffects.EdgeDetection_v4"};
-
-
-
-
-// **************************************************************
-// 
 // Ops.Ui.Comment_v2
 // 
 // **************************************************************
@@ -10050,6 +8813,104 @@ function init()
 
 Ops.Extension.FxHash.FxHash.prototype = new CABLES.Op();
 CABLES.OPS["090355fe-6ad9-457c-8192-9e306a9fe1eb"]={f:Ops.Extension.FxHash.FxHash,objName:"Ops.Extension.FxHash.FxHash"};
+
+
+
+
+// **************************************************************
+// 
+// Ops.String.NumberToString_v2
+// 
+// **************************************************************
+
+Ops.String.NumberToString_v2 = function()
+{
+CABLES.Op.apply(this,arguments);
+const op=this;
+const attachments={};
+const
+    val = op.inValue("Number"),
+    result = op.outString("Result");
+
+val.onChange = update;
+update();
+
+function update()
+{
+    result.set(String(val.get() || 0));
+}
+
+
+};
+
+Ops.String.NumberToString_v2.prototype = new CABLES.Op();
+CABLES.OPS["5c6d375a-82db-4366-8013-93f56b4061a9"]={f:Ops.String.NumberToString_v2,objName:"Ops.String.NumberToString_v2"};
+
+
+
+
+// **************************************************************
+// 
+// Ops.Array.ArrayGetTexture
+// 
+// **************************************************************
+
+Ops.Array.ArrayGetTexture = function()
+{
+CABLES.Op.apply(this,arguments);
+const op=this;
+const attachments={};
+const
+    array = op.inArray("array"),
+    index = op.inValueInt("index"),
+    value = op.outTexture("value");
+
+let last = null;
+
+array.ignoreValueSerialize = true;
+value.ignoreValueSerialize = true;
+
+index.onChange = update;
+array.onChange = update;
+
+op.toWorkPortsNeedToBeLinked(array, value);
+
+const emptyTex = CGL.Texture.getEmptyTexture(op.patch.cgl);
+
+function update()
+{
+    if (index.get() < 0)
+    {
+        value.set(emptyTex);
+        return;
+    }
+
+    let arr = array.get();
+    if (!arr)
+    {
+        value.set(emptyTex);
+        return;
+    }
+
+    let ind = index.get();
+    if (ind >= arr.length)
+    {
+        value.set(emptyTex);
+        return;
+    }
+    if (arr[ind])
+    {
+        value.set(emptyTex);
+        value.set(arr[ind]);
+        last = arr[ind];
+    }
+}
+
+
+};
+
+Ops.Array.ArrayGetTexture.prototype = new CABLES.Op();
+CABLES.OPS["afea522b-ab72-4574-b721-5d37f5abaf77"]={f:Ops.Array.ArrayGetTexture,objName:"Ops.Array.ArrayGetTexture"};
 
 
 
@@ -13078,6 +11939,69 @@ CABLES.OPS["b4b238d3-db68-4206-8dc7-4b52433fc932"]={f:Ops.Gl.TextureEffects.Nois
 
 // **************************************************************
 // 
+// Ops.Gl.TextureEffects.EdgeDetection_v4
+// 
+// **************************************************************
+
+Ops.Gl.TextureEffects.EdgeDetection_v4 = function()
+{
+CABLES.Op.apply(this,arguments);
+const op=this;
+const attachments={"edgedetect_frag":"IN vec2 texCoord;\nUNI sampler2D tex;\nUNI float amount;\nUNI float width;\nUNI float strength;\nUNI float texWidth;\nUNI float texHeight;\nUNI float mulColor;\n\nconst vec4 lumcoeff = vec4(0.299,0.587,0.114, 0.);\n\nvec3 desaturate(vec3 color)\n{\n    return vec3(dot(vec3(0.2126,0.7152,0.0722), color));\n}\n\n{{CGL.BLENDMODES3}}\n\nvoid main()\n{\n    // vec4 col=vec4(1.0,0.0,0.0,1.0);\n\n    // float pixelX=0.27/texWidth;\n    // float pixelY=0.27/texHeight;\n    float pixelX=(width+0.01)*4.0/texWidth;\n    float pixelY=(width+0.01)*4.0/texHeight;\n\nvec2 tc=texCoord;\n// #ifdef OFFSETPIXEL\n    tc.x+=1.0/texWidth*0.5;\n    tc.y+=1.0/texHeight*0.5;\n// #endif\n    // col=texture(tex,texCoord);\n\n    float count=1.0;\n    vec4 base=texture(tex,texCoord);\n\n\tvec4 horizEdge = vec4( 0.0 );\n\thorizEdge -= texture( tex, vec2( tc.x - pixelX, tc.y - pixelY ) ) * 1.0;\n\thorizEdge -= texture( tex, vec2( tc.x - pixelX, tc.y     ) ) * 2.0;\n\thorizEdge -= texture( tex, vec2( tc.x - pixelX, tc.y + pixelY ) ) * 1.0;\n\thorizEdge += texture( tex, vec2( tc.x + pixelX, tc.y - pixelY ) ) * 1.0;\n\thorizEdge += texture( tex, vec2( tc.x + pixelX, tc.y     ) ) * 2.0;\n\thorizEdge += texture( tex, vec2( tc.x + pixelX, tc.y + pixelY ) ) * 1.0;\n\tvec4 vertEdge = vec4( 0.0 );\n\tvertEdge -= texture( tex, vec2( tc.x - pixelX, tc.y - pixelY ) ) * 1.0;\n\tvertEdge -= texture( tex, vec2( tc.x    , tc.y - pixelY ) ) * 2.0;\n\tvertEdge -= texture( tex, vec2( tc.x + pixelX, tc.y - pixelY ) ) * 1.0;\n\tvertEdge += texture( tex, vec2( tc.x - pixelX, tc.y + pixelY ) ) * 1.0;\n\tvertEdge += texture( tex, vec2( tc.x    , tc.y + pixelY ) ) * 2.0;\n\tvertEdge += texture( tex, vec2( tc.x + pixelX, tc.y + pixelY ) ) * 1.0;\n\n\thorizEdge*=base.a;\n\tvertEdge*=base.a;\n\n\n\tvec3 edge = sqrt((horizEdge.rgb/count * horizEdge.rgb/count) + (vertEdge.rgb/count * vertEdge.rgb/count));\n\n    edge=desaturate(edge);\n    edge*=strength;\n\n    if(mulColor>0.0) edge*=texture( tex, texCoord ).rgb*mulColor*4.0;\n    edge=max(min(edge,1.0),0.0);\n\n    //blend section\n    vec4 col=vec4(edge,base.a);\n\n    outColor=cgl_blendPixel(base,col,amount*base.a);\n}\n\n",};
+const
+    render = op.inTrigger("Render"),
+    blendMode = CGL.TextureEffect.AddBlendSelect(op, "Blend Mode", "normal"),
+    amount = op.inValueSlider("Amount", 1),
+    strength = op.inFloat("Strength", 4.0),
+    width = op.inValueSlider("Width", 0.1),
+    mulColor = op.inValueSlider("Mul Color", 0),
+    trigger = op.outTrigger("Trigger");
+
+const cgl = op.patch.cgl;
+const shader = new CGL.Shader(cgl, op.name);
+
+shader.setSource(shader.getDefaultVertexShader(), attachments.edgedetect_frag);
+
+const
+    textureUniform = new CGL.Uniform(shader, "t", "tex", 0),
+    amountUniform = new CGL.Uniform(shader, "f", "amount", amount),
+    strengthUniform = new CGL.Uniform(shader, "f", "strength", strength),
+    widthUniform = new CGL.Uniform(shader, "f", "width", width),
+    uniWidth = new CGL.Uniform(shader, "f", "texWidth", 128),
+    uniHeight = new CGL.Uniform(shader, "f", "texHeight", 128),
+    uniMulColor = new CGL.Uniform(shader, "f", "mulColor", mulColor);
+
+CGL.TextureEffect.setupBlending(op, shader, blendMode, amount);
+
+render.onTriggered = function ()
+{
+    if (!CGL.TextureEffect.checkOpInEffect(op,3)) return;
+
+    cgl.pushShader(shader);
+    cgl.currentTextureEffect.bind();
+
+    cgl.setTexture(0, cgl.currentTextureEffect.getCurrentSourceTexture().tex);
+
+    uniWidth.setValue(cgl.currentTextureEffect.getCurrentSourceTexture().width);
+    uniHeight.setValue(cgl.currentTextureEffect.getCurrentSourceTexture().height);
+
+    cgl.currentTextureEffect.finish();
+    cgl.popShader();
+
+    trigger.trigger();
+};
+
+
+};
+
+Ops.Gl.TextureEffects.EdgeDetection_v4.prototype = new CABLES.Op();
+CABLES.OPS["0240e26e-b86d-43b2-8c72-6795bb86dc76"]={f:Ops.Gl.TextureEffects.EdgeDetection_v4,objName:"Ops.Gl.TextureEffects.EdgeDetection_v4"};
+
+
+
+
+// **************************************************************
+// 
 // Ops.Value.Boolean
 // 
 // **************************************************************
@@ -13580,6 +12504,54 @@ function update()
 
 Ops.Array.ArrayGetString.prototype = new CABLES.Op();
 CABLES.OPS["be8f16c0-0c8a-48a2-a92b-45dbf88c76c1"]={f:Ops.Array.ArrayGetString,objName:"Ops.Array.ArrayGetString"};
+
+
+
+
+// **************************************************************
+// 
+// Ops.Cables.AssetPathURL
+// 
+// **************************************************************
+
+Ops.Cables.AssetPathURL = function()
+{
+CABLES.Op.apply(this,arguments);
+const op=this;
+const attachments={};
+const
+    fn = op.inString("Filename", ""),
+    path = op.outString("Path");
+
+fn.onChange = update;
+
+update();
+
+function update()
+{
+    let filename = fn.get();
+
+    if (!fn.get())
+    {
+        path.set("");
+        return;
+    }
+
+    let patchId = null;
+    if (op.storage && op.storage.blueprint && op.storage.blueprint.patchId)
+    {
+        patchId = op.storage.blueprint.patchId;
+    }
+    filename = op.patch.getAssetPath(patchId) + filename;
+    let url = op.patch.getFilePath(filename);
+    path.set(url);
+}
+
+
+};
+
+Ops.Cables.AssetPathURL.prototype = new CABLES.Op();
+CABLES.OPS["e502ae39-c87e-4516-9e78-cb71333bcfff"]={f:Ops.Cables.AssetPathURL,objName:"Ops.Cables.AssetPathURL"};
 
 
 
@@ -15018,6 +13990,596 @@ inArray.onChange=function()
 
 Ops.Array.ArrayFloor.prototype = new CABLES.Op();
 CABLES.OPS["6ddbb878-5c95-4e4d-a068-760ff5bcf1f6"]={f:Ops.Array.ArrayFloor,objName:"Ops.Array.ArrayFloor"};
+
+
+
+
+// **************************************************************
+// 
+// Ops.Gl.TextureEffects.Clarity
+// 
+// **************************************************************
+
+Ops.Gl.TextureEffects.Clarity = function()
+{
+CABLES.Op.apply(this,arguments);
+const op=this;
+const attachments={"clarity_frag":"IN vec2 texCoord;\nUNI sampler2D tex;\nUNI float amount;\nUNI float pX,pY;\n\nvec3 desaturate(vec4 color)\n{\n    vec3 c= vec3(dot(vec3(0.2126,0.7152,0.0722), color.rgb));\n    return c;\n}\n\nvoid main()\n{\n    vec4 col=texture(tex,texCoord);\n\n    vec3 gray=desaturate(col);\n    vec3 m=smoothstep(0.2,0.5,gray)*smoothstep(0.75,0.5,gray);\n    vec4 col2=vec4(1.0);\n\n    col2.rgb = ((col.rgb - 0.5) * max(( vec3(amount)*m+0.5)*2.0, 0.0))+0.5;\n\n    outColor= col2;\n}\n\n\n",};
+const render = op.inTrigger("Render");
+const trigger = op.outTrigger("Trigger");
+const amount = op.inFloat("amount", 0.5);
+
+const cgl = op.patch.cgl;
+const shader = new CGL.Shader(cgl, op.name);
+
+shader.setSource(shader.getDefaultVertexShader(), attachments.clarity_frag);
+const textureUniform = new CGL.Uniform(shader, "t", "tex", 0);
+const amountUniform = new CGL.Uniform(shader, "f", "amount", amount);
+
+render.onTriggered = function ()
+{
+    if (!CGL.TextureEffect.checkOpInEffect(op)) return;
+
+    cgl.pushShader(shader);
+    cgl.currentTextureEffect.bind();
+
+    cgl.setTexture(0, cgl.currentTextureEffect.getCurrentSourceTexture().tex);
+
+    cgl.currentTextureEffect.finish();
+    cgl.popShader();
+
+    trigger.trigger();
+};
+
+
+};
+
+Ops.Gl.TextureEffects.Clarity.prototype = new CABLES.Op();
+CABLES.OPS["37d66c32-5594-4509-bba0-0ba2cbb706d8"]={f:Ops.Gl.TextureEffects.Clarity,objName:"Ops.Gl.TextureEffects.Clarity"};
+
+
+
+
+// **************************************************************
+// 
+// Ops.Gl.TextureEffects.Noise.Noise_v2
+// 
+// **************************************************************
+
+Ops.Gl.TextureEffects.Noise.Noise_v2 = function()
+{
+CABLES.Op.apply(this,arguments);
+const op=this;
+const attachments={"noise_frag":"IN vec2 texCoord;\nUNI sampler2D tex;\nUNI float amount;\nUNI float time;\nUNI float thresh;\n\n#ifdef HAS_MULMASK\n    UNI sampler2D texMul;\n#endif\n\n{{CGL.BLENDMODES3}}\n{{MODULES_HEAD}}\n\n{{CGL.RANDOM_TEX}}\n\nvoid main()\n{\n    vec4 rnd;\n\n    #ifdef RGB\n        rnd=vec4(cgl_random3(texCoord.xy+vec2(time)),1.0);\n    #else\n        float r=cgl_random(texCoord.xy+vec2(time));\n        rnd=vec4( r,r,r,1.0 );\n    #endif\n\n    vec4 base=texture(tex,texCoord);\n    vec4 col=rnd;//( _blend(base.rgb,rnd.rgb) ,1.0);\n\n    #ifdef NORMALIZE\n        col.rgb=(col.rgb-0.5)*2.0;\n    #endif\n\n    #ifdef HAS_MULMASK\n        col.rgb*=texture(texMul,texCoord).rgb;\n    #endif\n\n    col*=step(thresh,cgl_random(texCoord.xy*11.0+vec2(time)));\n\n\n    outColor=cgl_blendPixel(base,col,amount);\n}",};
+const
+    render = op.inTrigger("Render"),
+    blendMode = CGL.TextureEffect.AddBlendSelect(op, "Blend Mode", "normal"),
+    maskAlpha = CGL.TextureEffect.AddBlendAlphaMask(op),
+    amount = op.inValueSlider("Amount", 1),
+    thresh = op.inValueSlider("Threshold", 0),
+    animated = op.inValueBool("Animated", true),
+    inRGB = op.inValueBool("RGB", false),
+    normalize = op.inValueBool("Normalize", false),
+    inTexMul = op.inTexture("Multiply"),
+    trigger = op.outTrigger("Next");
+
+const
+    cgl = op.patch.cgl,
+    shader = new CGL.Shader(cgl, op.name),
+    amountUniform = new CGL.Uniform(shader, "f", "amount", amount),
+    timeUniform = new CGL.Uniform(shader, "f", "time", 1.0),
+    thresuni = new CGL.Uniform(shader, "f", "thresh", thresh),
+    textureUniform = new CGL.Uniform(shader, "t", "tex", 0),
+    mulUniform = new CGL.Uniform(shader, "t", "texMul", 1);
+
+shader.setSource(shader.getDefaultVertexShader(), attachments.noise_frag);
+
+CGL.TextureEffect.setupBlending(op, shader, blendMode, amount, maskAlpha);
+
+op.toWorkPortsNeedToBeLinked(render);
+
+inTexMul.onChange =
+normalize.onChange =
+inRGB.onChange = function ()
+{
+    shader.toggleDefine("HAS_MULMASK", inTexMul.get());
+    shader.toggleDefine("RGB", inRGB.get());
+    shader.toggleDefine("NORMALIZE", normalize.get());
+};
+
+render.onTriggered = function ()
+{
+    if (!CGL.TextureEffect.checkOpInEffect(op, 3)) return;
+
+    if (animated.get()) timeUniform.setValue(op.patch.freeTimer.get() / 1000 % 100);
+    else timeUniform.setValue(0);
+
+    cgl.pushShader(shader);
+
+    cgl.setTexture(0, cgl.currentTextureEffect.getCurrentSourceTexture().tex);
+    if (inTexMul.get())cgl.setTexture(1, inTexMul.get().tex);
+
+    cgl.currentTextureEffect.bind();
+
+    cgl.currentTextureEffect.finish();
+    cgl.popShader();
+
+    trigger.trigger();
+};
+
+
+};
+
+Ops.Gl.TextureEffects.Noise.Noise_v2.prototype = new CABLES.Op();
+CABLES.OPS["b1d9aacc-dc52-43a6-a00f-414f08768800"]={f:Ops.Gl.TextureEffects.Noise.Noise_v2,objName:"Ops.Gl.TextureEffects.Noise.Noise_v2"};
+
+
+
+
+// **************************************************************
+// 
+// Ops.Html.FontFile_v2
+// 
+// **************************************************************
+
+Ops.Html.FontFile_v2 = function()
+{
+CABLES.Op.apply(this,arguments);
+const op=this;
+const attachments={};
+const
+    filename = op.inUrl("file", [".otf", ".ttf", ".woff", ".woff2"]),
+    fontname = op.inString("family"),
+    outLoaded = op.outBoolNum("Loaded"),
+    loadedTrigger = op.outTrigger("Loaded Trigger");
+
+let loadingId = null;
+
+filename.onChange = function ()
+{
+    outLoaded.set(false);
+    addStyle();
+};
+
+fontname.onChange = addStyle;
+
+let fontFaceObj;
+
+function addStyle()
+{
+    if (filename.get() && fontname.get())
+    {
+        if (document.fonts)
+        {
+            fontFaceObj = new FontFace(fontname.get(), "url(" + op.patch.getFilePath(String(filename.get())) + ")");
+
+            loadingId = op.patch.cgl.patch.loading.start("FontFile", filename.get(), op);
+
+            // Add the FontFace to the FontFaceSet
+            document.fonts.add(fontFaceObj);
+
+            // Get the current status of the FontFace
+            // (should be 'unloaded')
+
+            // Load the FontFace
+            fontFaceObj.load();
+
+            // Get the current status of the Fontface
+            // (should be 'loading' or 'loaded' if cached)
+
+            // Wait until the font has been loaded, log the current status.
+            fontFaceObj.loaded.then((fontFace) =>
+            {
+                outLoaded.set(true);
+                loadedTrigger.trigger();
+                op.patch.cgl.patch.loading.finished(loadingId);
+
+                op.patch.emitEvent("fontLoaded", fontname.get());
+
+                // Throw an error if loading wasn't successful
+            }, (fontFace) =>
+            {
+                op.setUiError("loadingerror", "Font loading error!" + fontFaceObj.status);
+                // op.logError("Font loading error! Current status", fontFaceObj.status);
+            });
+        }
+        else
+        { // font loading api not supported
+            const fileUrl = op.patch.getFilePath(String(filename.get()));
+            const styleStr = ""
+                .endl() + "@font-face"
+                .endl() + "{"
+                .endl() + "  font-family: \"" + fontname.get() + "\";"
+                .endl() + "  src: url(\"" + fileUrl + "\") format(\"truetype\");"
+                .endl() + "}";
+
+            const style = document.createElement("style");
+            style.type = "text/css";
+            style.innerHTML = styleStr;
+            document.getElementsByTagName("head")[document.getElementsByTagName("head").length - 1].appendChild(style);
+            // TODO: Poll if font loaded
+        }
+    }
+}
+
+
+};
+
+Ops.Html.FontFile_v2.prototype = new CABLES.Op();
+CABLES.OPS["68177370-116e-4c76-aef3-3b10d68e7227"]={f:Ops.Html.FontFile_v2,objName:"Ops.Html.FontFile_v2"};
+
+
+
+
+// **************************************************************
+// 
+// Ops.Math.Compare.GreaterOrEquals
+// 
+// **************************************************************
+
+Ops.Math.Compare.GreaterOrEquals = function()
+{
+CABLES.Op.apply(this,arguments);
+const op=this;
+const attachments={};
+const
+    result = op.outBoolNum("result"),
+    number1 = op.inValueFloat("number1"),
+    number2 = op.inValueFloat("number2");
+
+number1.onLinkChanged =
+    number2.onLinkChanged =
+    number1.onChange =
+    number2.onChange = exec;
+
+function exec()
+{
+    result.set(number1.get() >= number2.get());
+}
+
+
+};
+
+Ops.Math.Compare.GreaterOrEquals.prototype = new CABLES.Op();
+CABLES.OPS["5f9ce320-1e8d-49cb-9927-337e0b3f4d45"]={f:Ops.Math.Compare.GreaterOrEquals,objName:"Ops.Math.Compare.GreaterOrEquals"};
+
+
+
+
+// **************************************************************
+// 
+// Ops.Html.AppendChild_v2
+// 
+// **************************************************************
+
+Ops.Html.AppendChild_v2 = function()
+{
+CABLES.Op.apply(this,arguments);
+const op=this;
+const attachments={};
+// constants
+let CANVAS_ELEMENT = op.patch.cgl.canvas.parentElement;
+
+// variables
+let lastParent = null;
+let lastChild = null;
+
+// inputs
+let parentPort = op.inObject("Parent", null, "element");
+let childPort = op.inObject("Child", null, "element");
+
+// outputs
+let parentOutPort = op.outObject("Parent Out", null, "element");
+let childOutPort = op.outObject("Child Out", null, "element");
+
+// change listeners
+parentPort.onChange = update;
+childPort.onChange = update;
+
+// functions
+
+function update()
+{
+    let parent = parentPort.get();
+    let child = childPort.get();
+    if (parent !== lastParent)
+    {
+        if (parent)
+        {
+            handleParentConnect(parent, child);
+        }
+        else
+        {
+            handleParentDisconnect(parent, child);
+        }
+        lastParent = parent;
+    }
+    if (child !== lastChild)
+    {
+        if (child)
+        {
+            handleChildConnect(parent, child);
+        }
+        else
+        {
+            handleChildDisconnect(parent, child);
+        }
+        lastChild = child;
+    }
+    parentOutPort.set(parent);
+    childOutPort.set(child);
+}
+
+function handleParentConnect(parent, child)
+{
+    if (child)
+    {
+        parent.appendChild(child);
+    }
+}
+
+function handleParentDisconnect(parent, child)
+{
+    if (child)
+    {
+        CANVAS_ELEMENT.appendChild(child); // if there is no parent, append to patch
+    }
+}
+
+function handleChildConnect(parent, child)
+{
+    if (parent)
+    {
+        parent.appendChild(child);
+    }
+}
+
+function handleChildDisconnect(parent, child)
+{
+    if (lastChild)
+    {
+        CANVAS_ELEMENT.appendChild(lastChild);
+    }
+}
+
+
+};
+
+Ops.Html.AppendChild_v2.prototype = new CABLES.Op();
+CABLES.OPS["e15cfbc7-d2fa-4348-8964-66d02aec77aa"]={f:Ops.Html.AppendChild_v2,objName:"Ops.Html.AppendChild_v2"};
+
+
+
+
+// **************************************************************
+// 
+// Ops.Gl.TextureEffects.Hue
+// 
+// **************************************************************
+
+Ops.Gl.TextureEffects.Hue = function()
+{
+CABLES.Op.apply(this,arguments);
+const op=this;
+const attachments={"hue_frag":"UNI float hue;\n\n#ifdef HAS_TEXTURES\n  IN vec2 texCoord;\n  UNI sampler2D tex;\n#endif\n\n#ifdef TEX_MASK\n    UNI sampler2D texMask;\n#endif\n#ifdef TEX_OFFSET\n    UNI sampler2D texOffset;\n#endif\n\nvec3 rgb2hsv(vec3 c)\n{\n    vec4 K = vec4(0.0, -1.0 / 3.0, 2.0 / 3.0, -1.0);\n    vec4 p = mix(vec4(c.bg, K.wz), vec4(c.gb, K.xy), step(c.b, c.g));\n    vec4 q = mix(vec4(p.xyw, c.r), vec4(c.r, p.yzx), step(p.x, c.r));\n\n    float d = q.x - min(q.w, q.y);\n    float e = 1.0e-10;\n    return vec3(abs(q.z + (q.w - q.y) / (6.0 * d + e)), d / (q.x + e), q.x);\n}\n\nvec3 hsv2rgb(vec3 c)\n{\n    vec4 K = vec4(1.0, 2.0 / 3.0, 1.0 / 3.0, 3.0);\n    vec3 p = abs(fract(c.xxx + K.xyz) * 6.0 - K.www);\n    return c.z * mix(K.xxx, clamp(p - K.xxx, 0.0, 1.0), c.y);\n}\n\nvoid main()\n{\n   vec4 col=vec4(1.0,0.0,0.0,1.0);\n    #ifdef HAS_TEXTURES\n        col=texture(tex,texCoord);\n        float h=hue;\n\n        #ifdef TEX_OFFSET\n            h += texture(texOffset,texCoord).r;\n        #endif\n\n\n        vec3 hsv = rgb2hsv(col.rgb);\n        hsv.x=hsv.x+h;\n\n        #ifndef TEX_MASK\n            col.rgb = hsv2rgb(hsv);\n        #endif\n\n        #ifdef TEX_MASK\n            col.rgb = mix(col.rgb,hsv2rgb(hsv),texture(texMask,texCoord).r);\n        #endif\n\n   #endif\n   outColor= col;\n}",};
+const
+    render = op.inTrigger("render"),
+    hue = op.inValueSlider("hue", 1),
+    texMask = op.inTexture("Mask"),
+    texOffset = op.inTexture("Offset"),
+    trigger = op.outTrigger("trigger");
+
+const cgl = op.patch.cgl;
+const shader = new CGL.Shader(cgl, op.name);
+
+shader.setSource(shader.getDefaultVertexShader(), attachments.hue_frag);
+const textureUniform = new CGL.Uniform(shader, "t", "tex", 0);
+
+const textureMaskUniform = new CGL.Uniform(shader, "t", "texMask", 1);
+const textureOffsetUniform = new CGL.Uniform(shader, "t", "texOffset", 2);
+
+const uniformHue = new CGL.Uniform(shader, "f", "hue", 1.0);
+
+hue.onChange = function () { uniformHue.setValue(hue.get()); };
+
+texMask.onChange =
+texOffset.onChange = () =>
+{
+    shader.toggleDefine("TEX_MASK", texMask.get());
+    shader.toggleDefine("TEX_OFFSET", texOffset.get());
+};
+
+render.onTriggered = function ()
+{
+    if (!CGL.TextureEffect.checkOpInEffect(op)) return;
+
+    cgl.pushShader(shader);
+    cgl.currentTextureEffect.bind();
+
+    cgl.setTexture(0, cgl.currentTextureEffect.getCurrentSourceTexture().tex);
+
+    if (texMask.get()) cgl.setTexture(1, texMask.get().tex);
+    if (texOffset.get()) cgl.setTexture(2, texOffset.get().tex);
+
+    cgl.currentTextureEffect.finish();
+    cgl.popShader();
+
+    trigger.trigger();
+};
+
+
+};
+
+Ops.Gl.TextureEffects.Hue.prototype = new CABLES.Op();
+CABLES.OPS["94ef0da0-c920-415c-81b0-fecbd437991d"]={f:Ops.Gl.TextureEffects.Hue,objName:"Ops.Gl.TextureEffects.Hue"};
+
+
+
+
+// **************************************************************
+// 
+// Ops.Devices.Mobile.ScreenOrientation
+// 
+// **************************************************************
+
+Ops.Devices.Mobile.ScreenOrientation = function()
+{
+CABLES.Op.apply(this,arguments);
+const op=this;
+const attachments={};
+const
+    angle = op.outNumber("Angle"),
+    str = op.outString("Description");
+
+let count = 0;
+window.addEventListener("resize", onOrientationChange, false);
+window.addEventListener("orientationchange", onOrientationChange, false);
+
+onOrientationChange();
+
+if (screen && screen.orientation)
+{
+    screen.orientation.addEventListener("change", onOrientationChange);
+}
+
+function onOrientationChange()
+{
+    count++;
+    if (!screen.orientation) return;
+    if (screen.orientation.hasOwnProperty("angle"))angle.set(screen.orientation.angle);
+    let s = screen.orientation.type + " #" + count + " WINORIENT:" + window.orientation;
+    str.set(s);
+}
+
+op.onDelete = function ()
+{
+    window.removeEventListener("resize", onOrientationChange);
+    window.removeEventListener("orientationchange", onOrientationChange);
+};
+
+
+};
+
+Ops.Devices.Mobile.ScreenOrientation.prototype = new CABLES.Op();
+CABLES.OPS["ef8f5f5a-4652-4fad-983b-aca96d9cc13b"]={f:Ops.Devices.Mobile.ScreenOrientation,objName:"Ops.Devices.Mobile.ScreenOrientation"};
+
+
+
+
+// **************************************************************
+// 
+// Ops.String.StringContains_v2
+// 
+// **************************************************************
+
+Ops.String.StringContains_v2 = function()
+{
+CABLES.Op.apply(this,arguments);
+const op=this;
+const attachments={};
+const
+    inStr = op.inString("String"),
+    inValue = op.inString("SearchValue"),
+    outFound = op.outBoolNum("Found", false),
+    outIndex = op.outNumber("Index", -1);
+
+inValue.onChange =
+    inStr.onChange = exec;
+
+exec();
+
+function exec()
+{
+    if (inStr.get() && inValue.get() && inValue.get().length > 0)
+    {
+        const index = inStr.get().indexOf(inValue.get());
+        outIndex.set(index);
+        outFound.set(index > -1);
+    }
+    else
+    {
+        outIndex.set(-1);
+        outFound.set(false);
+    }
+}
+
+
+};
+
+Ops.String.StringContains_v2.prototype = new CABLES.Op();
+CABLES.OPS["2ca3e5d7-e6b4-46a7-8381-3fe1ad8b6879"]={f:Ops.String.StringContains_v2,objName:"Ops.String.StringContains_v2"};
+
+
+
+
+// **************************************************************
+// 
+// Ops.Json.RouteObject
+// 
+// **************************************************************
+
+Ops.Json.RouteObject = function()
+{
+CABLES.Op.apply(this,arguments);
+const op=this;
+const attachments={};
+const
+    NUM_PORTS = 10,
+    DEFAULT_OBJECT = {},
+    indexPort = op.inInt("index"),
+    objectPort = op.inObject("Object in"),
+    defaultObjectPort = op.inObject("default object", DEFAULT_OBJECT),
+    objectPorts = createOutPorts(DEFAULT_OBJECT);
+
+indexPort.onChange = objectPort.onChange = defaultObjectPort.onChange = update;
+
+setDefaultValues();
+update();
+
+function createOutPorts()
+{
+    let arrayObjects = [];
+    for (let i = 0; i < NUM_PORTS; i++)
+    {
+        let port = op.outObject("Index " + i + " Object");
+        arrayObjects.push(port);
+    }
+    defaultObjectPort.set(null);
+    return arrayObjects;
+}
+
+function setDefaultValues()
+{
+    let defaultValue = defaultObjectPort.get();
+
+    objectPorts.forEach((port) => { return port.set(null); });
+    if (defaultObjectPort.get())
+    {
+        objectPorts.forEach((port) => { return port.set(defaultValue); });
+    }
+}
+
+function update()
+{
+    setDefaultValues();
+    let index = indexPort.get();
+    let value = objectPort.get();
+
+    index = Math.floor(index);
+    index = clamp(index, 0, NUM_PORTS - 1);
+    objectPorts[index].setRef(value);
+}
+
+function clamp(value, min, max)
+{
+    return Math.min(Math.max(value, min), max);
+}
+
+
+};
+
+Ops.Json.RouteObject.prototype = new CABLES.Op();
+CABLES.OPS["bc969951-32b5-4226-9944-80a719a65497"]={f:Ops.Json.RouteObject,objName:"Ops.Json.RouteObject"};
 
 
 

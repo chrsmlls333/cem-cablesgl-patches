@@ -16,7 +16,3 @@ Public Domain:
 - Photoshop math GLSL shaders by Romain Dura (https://mouaif.wordpress.com/2009/01/05/photoshop-math-with-glsl-shaders/)
 - GPU-Noise-Lib by Brian Sharpe (https://github.com/BrianSharpe/GPU-Noise-Lib)
 - moment.js (https://momentjs.com/)
-
-uploaded/unknown:
-
-- docs.opencv.org_4.8.0_opencv.js (/assets/64c6ccd0c033c0b9f60ff990/docs.opencv.org_4.8.0_opencv.js)

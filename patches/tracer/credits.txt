@@ -9,7 +9,6 @@ OP AUTHORS:
 - ops by cables user cables (https://cables.gl/user/cables)
 - ops by cables user GeertVanDamme (https://cables.gl/user/GeertVanDamme)
 - ops by cables user stephan (https://cables.gl/user/stephan)
-- ops by cables user b2renger (https://cables.gl/user/b2renger)
 - ops by cables user andro (https://cables.gl/user/andro)
 - ops by cables user simod (https://cables.gl/user/simod)
 - ops by cables user action (https://cables.gl/user/action)
