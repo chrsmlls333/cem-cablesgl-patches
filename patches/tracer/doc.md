@@ -32,6 +32,7 @@
 * __is Manually Paused__ ```Number```
 * __is Playing__ ```Number```
 * __is UI editor__ ```Number```
+* __manual scale set__ ```Number```
 * __pinch scale__ ```Number```
 * __pinch scale smooth__ ```Number```
 * __Pixel Scale__ ```Number```

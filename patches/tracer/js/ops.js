@@ -11160,40 +11160,6 @@ CABLES.OPS["5431b943-18aa-46e4-bd32-a7eee30d4e51"]={f:Ops.Math.Difference,objNam
 
 // **************************************************************
 // 
-// Ops.Value.PreviousValueStore
-// 
-// **************************************************************
-
-Ops.Value.PreviousValueStore = function()
-{
-CABLES.Op.apply(this,arguments);
-const op=this;
-const attachments={};
-const
-    val = op.inValueFloat("Value"),
-    outCurrent = op.outNumber("Current Value"),
-    outOldVal = op.outNumber("Previous Value");
-
-let oldValue = 0;
-
-val.onChange = function ()
-{
-    outOldVal.set(oldValue);
-    oldValue = val.get();
-    outCurrent.set(val.get());
-};
-
-
-};
-
-Ops.Value.PreviousValueStore.prototype = new CABLES.Op();
-CABLES.OPS["01716872-67bd-4b31-a4a2-e0ccadf48411"]={f:Ops.Value.PreviousValueStore,objName:"Ops.Value.PreviousValueStore"};
-
-
-
-
-// **************************************************************
-// 
 // Ops.Html.ToggleClass
 // 
 // **************************************************************
@@ -14514,72 +14480,119 @@ CABLES.OPS["2ca3e5d7-e6b4-46a7-8381-3fe1ad8b6879"]={f:Ops.String.StringContains_
 
 // **************************************************************
 // 
-// Ops.Json.RouteObject
+// Ops.Value.FilterValidNumber
 // 
 // **************************************************************
 
-Ops.Json.RouteObject = function()
+Ops.Value.FilterValidNumber = function()
 {
 CABLES.Op.apply(this,arguments);
 const op=this;
 const attachments={};
 const
-    NUM_PORTS = 10,
-    DEFAULT_OBJECT = {},
-    indexPort = op.inInt("index"),
-    objectPort = op.inObject("Object in"),
-    defaultObjectPort = op.inObject("default object", DEFAULT_OBJECT),
-    objectPorts = createOutPorts(DEFAULT_OBJECT);
+    inNumber=op.inFloat("Number",0),
+    inZero=op.inBool("Invalid when 0",false),
+    inSmaller=op.inBool("Invalid when <0",false),
 
-indexPort.onChange = objectPort.onChange = defaultObjectPort.onChange = update;
+    outNum=op.outNumber("Last Valid Number"),
+    outValid=op.outBool("Is Valid");
 
-setDefaultValues();
-update();
+inZero.onChange=
+inSmaller.onChange=
+inNumber.onChange=
+    update;
 
-function createOutPorts()
-{
-    let arrayObjects = [];
-    for (let i = 0; i < NUM_PORTS; i++)
-    {
-        let port = op.outObject("Index " + i + " Object");
-        arrayObjects.push(port);
-    }
-    defaultObjectPort.set(null);
-    return arrayObjects;
-}
-
-function setDefaultValues()
-{
-    let defaultValue = defaultObjectPort.get();
-
-    objectPorts.forEach((port) => { return port.set(null); });
-    if (defaultObjectPort.get())
-    {
-        objectPorts.forEach((port) => { return port.set(defaultValue); });
-    }
-}
 
 function update()
 {
-    setDefaultValues();
-    let index = indexPort.get();
-    let value = objectPort.get();
+    const num=inNumber.get();
 
-    index = Math.floor(index);
-    index = clamp(index, 0, NUM_PORTS - 1);
-    objectPorts[index].setRef(value);
+    var r=true;
+
+    if(num===null || num===undefined || num!=num) r=false;
+    if(inZero.get() && num===0) r=false;
+    if(inSmaller.get() && num<0) r=false;
+
+    if(r) outNum.set(num);
+
+    outValid.set(r);
 }
 
-function clamp(value, min, max)
+};
+
+Ops.Value.FilterValidNumber.prototype = new CABLES.Op();
+CABLES.OPS["5a4db4ef-33d2-4131-9825-aa926f1f5a98"]={f:Ops.Value.FilterValidNumber,objName:"Ops.Value.FilterValidNumber"};
+
+
+
+
+// **************************************************************
+// 
+// Ops.String.ParseInt_v2
+// 
+// **************************************************************
+
+Ops.String.ParseInt_v2 = function()
 {
-    return Math.min(Math.max(value, min), max);
-}
+CABLES.Op.apply(this,arguments);
+const op=this;
+const attachments={};
+const
+    str = op.inString("String", 5711),
+    outNum = op.outNumber("Number");
+
+str.onChange = function ()
+{
+    let num = parseInt(str.get());
+    if (num != num) num = 0;
+    outNum.set(num);
+};
 
 
 };
 
-Ops.Json.RouteObject.prototype = new CABLES.Op();
-CABLES.OPS["bc969951-32b5-4226-9944-80a719a65497"]={f:Ops.Json.RouteObject,objName:"Ops.Json.RouteObject"};
+Ops.String.ParseInt_v2.prototype = new CABLES.Op();
+CABLES.OPS["6d208424-daf2-4a2b-874f-daac406c1f66"]={f:Ops.String.ParseInt_v2,objName:"Ops.String.ParseInt_v2"};
+
+
+
+
+// **************************************************************
+// 
+// Ops.Trigger.IsTriggered
+// 
+// **************************************************************
+
+Ops.Trigger.IsTriggered = function()
+{
+CABLES.Op.apply(this,arguments);
+const op=this;
+const attachments={};
+const
+    exec = op.inTrigger("Trigger"),
+    next = op.outTrigger("Next"),
+    result = op.outBoolNum("Was Triggered", false);
+
+let frameCount = 0;
+
+op.onAnimFrame = function (tt)
+{
+    frameCount++;
+    if (frameCount > 1) result.set(false);
+};
+
+exec.onTriggered = function ()
+{
+    frameCount = 0;
+    result.set(true);
+    next.trigger();
+};
+
+
+};
+
+Ops.Trigger.IsTriggered.prototype = new CABLES.Op();
+CABLES.OPS["7c96fee9-4c2f-45e1-a41b-096b06d286b8"]={f:Ops.Trigger.IsTriggered,objName:"Ops.Trigger.IsTriggered"};
 
 
 
