@@ -637,33 +637,32 @@ window.addEventListener("message", (event) => {
     body {
       background-color: black;
     }
-    body {
-          margin: 0;
-          background-color: #000;
-          color: #fff;
-          font-family: Helvetica, Arial, sans-serif;
-          overflow: hidden; /* disable scrolling / rubberband effect on mobile */
-          width:100vw;
-          height:100vhmax;
-      }
+        body {
+            margin: 0;
+            background-color: #000;
+            color: #fff;
+            font-family: Helvetica, Arial, sans-serif;
+            overflow: hidden; /* disable scrolling / rubberband effect on mobile */
+            height:100vh;
+            height:100dvh;
+        }
 
-      canvas {
-          display: block;
-          position: absolute;
-          outline:0;
-      }
+        canvas {
+            display: block;
+            position: absolute;
+            outline:0;
+        }
 
-      * {
-          /* disable on touch highlights of html elements, especially on mobile! */
-          -webkit-tap-highlight-color: transparent;
-          -webkit-touch-callout: none;
-          -webkit-user-select: none;
-          -moz-user-select: none;
-          -ms-user-select: none;
-          user-select: none;
-      }
-
-  </style>
+        * {
+            /* disable on touch highlights of html elements, especially on mobile! */
+            -webkit-tap-highlight-color: transparent;
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+        }
+        </style>
   <!-- if you need to import js scripts do it here  -->
 </head>
 
