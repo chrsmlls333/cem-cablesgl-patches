@@ -23,6 +23,7 @@
 * __Canvas Height__ ```Number```
 * __Canvas Width__ ```Number```
 * __current frame__ ```Number```
+* __DPI__ ```Number```
 * __external imagelist name__ ```String```
 * __external imagelist options__ ```Array```
 * __filestamp__ ```String```
