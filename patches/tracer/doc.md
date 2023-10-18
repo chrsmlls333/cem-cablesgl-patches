@@ -27,7 +27,6 @@
 * __external imagelist name__ ```String```
 * __external imagelist options__ ```Array```
 * __filestamp__ ```String```
-* __final texture__ ```Texture```
 * __fx feature Endings__ ```String```
 * __fx feature Eroder__ ```String```
 * __fx feature Heading__ ```String```
@@ -58,6 +57,7 @@
 * __imagelist json picked__ ```String```
 * __Is Fullscreen__ ```Number```
 * __is Manually Paused__ ```Number```
+* __is not UI editor__ ```Number```
 * __is Playing__ ```Number```
 * __is UI editor__ ```Number```
 * __loop degradation percent__ ```Number```
