@@ -59,15 +59,17 @@
 * __is Manually Paused__ ```Number```
 * __is not UI editor__ ```Number```
 * __is Playing__ ```Number```
+* __is recording__ ```Number```
 * __is UI editor__ ```Number```
 * __loop degradation percent__ ```Number```
 * __manual scale set__ ```Number```
 * __pinch scale__ ```Number```
+* __pinch scale default__ ```Number```
 * __pinch scale smooth__ ```Number```
-* __Pixel Scale__ ```Number```
 * __progress num__ ```Number```
 * __sort threshold lfo amplitude percent__ ```Number```
 * __Subcanvas Height__ ```Number```
 * __Subcanvas Width__ ```Number```
 * __total num images loaded__ ```Number```
+* __ui info container element__ ```Object```
 

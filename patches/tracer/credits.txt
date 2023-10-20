@@ -13,5 +13,6 @@ OP AUTHORS:
 - ops by cables user cables (https://cables.gl/user/cables)
 - ops by cables user GeertVanDamme (https://cables.gl/user/GeertVanDamme)
 - GPU-Noise-Lib by Brian Sharpe (https://github.com/BrianSharpe/GPU-Noise-Lib)
+- LUT Shader by Brad Larson  (https://github.com/liovch/GPUImage)
 
 cables is build on open source software and community contributions, check https://cables.gl/credits
